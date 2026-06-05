@@ -4,13 +4,13 @@ import { useStore } from '../store/useStore'
 import { semaforo } from '../utils'
 import {
   Home, AlertTriangle, Package, Users, LayoutDashboard, BarChart2,
-  Settings, LogOut, User, ChevronDown, Building2, Menu, X
+  Settings, LogOut, User, Building2, Menu, X
 } from 'lucide-react'
 
 // ── NavItem ──────────────────────────────────────────────────────────────────
-function NavItem({ to, icon: Icon, label }) {
+function NavItem({ to, icon: Icon, label, onClick }) {
   return (
-    <NavLink to={to} style={({ isActive }) => ({
+    <NavLink to={to} onClick={onClick} style={({ isActive }) => ({
       display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px',
       borderRadius: 6, fontSize: 13, textDecoration: 'none', marginBottom: 2,
       color: isActive ? '#fff' : 'rgba(255,255,255,0.5)',
@@ -23,11 +23,10 @@ function NavItem({ to, icon: Icon, label }) {
   )
 }
 
-// ── Layout ───────────────────────────────────────────────────────────────────
-export function Layout({ children }) {
+// ── SidebarContent ────────────────────────────────────────────────────────────
+function SidebarContent({ onNavClick }) {
   const { usuarioActual, logout, proyectoActivo } = useStore()
   const navigate = useNavigate()
-  const [menuOpen, setMenuOpen] = React.useState(false)
   const rol = usuarioActual?.rol
 
   const handleLogout = async () => {
@@ -39,18 +38,17 @@ export function Layout({ children }) {
   const esDireccion = ['admin', 'direccion'].includes(rol)
   const esLider     = ['admin', 'direccion', 'lider'].includes(rol)
 
-  const sidebar = (
+  return (
     <div style={{
       width: 210, background: '#2E2A2B', display: 'flex', flexDirection: 'column',
-      padding: '0 14px 20px', flexShrink: 0, height: '100vh',
-      position: 'sticky', top: 0
+      padding: '0 14px 20px', height: '100%'
     }}>
       {/* Logo */}
       <div style={{
         padding: '22px 0 18px', textAlign: 'center',
         borderBottom: '0.5px solid rgba(255,255,255,0.08)', marginBottom: 16,
-        cursor: 'pointer'
-      }} onClick={() => navigate('/dashboard')}>
+        cursor: 'pointer', flexShrink: 0
+      }} onClick={() => { navigate('/dashboard'); onNavClick?.() }}>
         <div style={{ fontFamily: 'var(--font-title)', fontSize: 17, fontWeight: 700, letterSpacing: '0.1em' }}>
           <span style={{ color: '#fff' }}>ND</span>
           <span style={{ color: 'var(--nd-light)' }}>TRACKER</span>
@@ -63,32 +61,30 @@ export function Layout({ children }) {
 
       {/* Nav principal */}
       <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 6px 10px', fontFamily: 'var(--font-title)' }}>Principal</p>
-      <NavItem to="/dashboard"    icon={Home}          label="Dashboard" />
-      <NavItem to="/hallazgos"    icon={AlertTriangle}  label="Hallazgos" />
-      {esLider && <NavItem to="/innecesarios" icon={Package} label="Innecesarios" />}
+      <NavItem to="/dashboard"   icon={Home}          label="Dashboard"    onClick={onNavClick} />
+      <NavItem to="/hallazgos"   icon={AlertTriangle}  label="Hallazgos"    onClick={onNavClick} />
+      {esLider && <NavItem to="/innecesarios" icon={Package} label="Innecesarios" onClick={onNavClick} />}
 
-      {/* Nav dirección */}
       {esDireccion && <>
         <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '14px 0 6px 10px', fontFamily: 'var(--font-title)' }}>Gestión</p>
-        <NavItem to="/tablero"    icon={LayoutDashboard} label="Tablero 5S" />
-        <NavItem to="/directorio"   icon={Users}           label="Directorio" />
-        <NavItem to="/estadisticas" icon={BarChart2}       label="Estadísticas" />
+        <NavItem to="/tablero"      icon={LayoutDashboard} label="Tablero 5S"    onClick={onNavClick} />
+        <NavItem to="/directorio"   icon={Users}           label="Directorio"    onClick={onNavClick} />
+        <NavItem to="/estadisticas" icon={BarChart2}       label="Estadísticas"  onClick={onNavClick} />
       </>}
 
-      {/* Nav admin */}
       {esAdmin && <>
         <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '14px 0 6px 10px', fontFamily: 'var(--font-title)' }}>Admin</p>
-        <NavItem to="/proyectos"  icon={Building2}  label="Proyectos" />
-        <NavItem to="/usuarios"   icon={Users}      label="Usuarios" />
-        <NavItem to="/config"     icon={Settings}   label="Configuración" />
+        <NavItem to="/proyectos" icon={Building2} label="Proyectos"      onClick={onNavClick} />
+        <NavItem to="/usuarios"  icon={Users}     label="Usuarios"       onClick={onNavClick} />
+        <NavItem to="/config"    icon={Settings}  label="Configuración"  onClick={onNavClick} />
       </>}
 
-      <NavItem to="/perfil" icon={User} label="Mi perfil" />
+      <NavItem to="/perfil" icon={User} label="Mi perfil" onClick={onNavClick} />
 
-      {/* Footer usuario */}
-      <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '0.5px solid rgba(255,255,255,0.08)' }}>
+      {/* Footer */}
+      <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '0.5px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px' }}>
-          <div onClick={() => navigate('/perfil')} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+          <div onClick={() => { navigate('/perfil'); onNavClick?.() }} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
             <Avatar iniciales={usuarioActual?.iniciales} color={usuarioActual?.color} size={28} />
             <div>
               <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', display: 'block', lineHeight: 1.2 }}>
@@ -106,13 +102,65 @@ export function Layout({ children }) {
       </div>
     </div>
   )
+}
+
+// ── Layout responsive ─────────────────────────────────────────────────────────
+export function Layout({ children }) {
+  const [menuOpen, setMenuOpen] = React.useState(false)
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar desktop */}
-      <div style={{ display: 'none' }} className="sidebar-desktop">{sidebar}</div>
-      {/* Sidebar siempre visible */}
-      {sidebar}
+    <div style={{ display: 'flex', minHeight: '100vh', position: 'relative' }}>
+
+      {/* Sidebar desktop — siempre visible en pantallas anchas */}
+      <div style={{ display: 'flex', flexShrink: 0 }} className="sidebar-wrap">
+        <style>{`
+          @media (max-width: 768px) {
+            .sidebar-wrap { display: none !important; }
+            .mobile-topbar { display: flex !important; }
+            .page-content { padding: 16px !important; }
+          }
+          @media (min-width: 769px) {
+            .mobile-topbar { display: none !important; }
+          }
+        `}</style>
+        <SidebarContent />
+      </div>
+
+      {/* Topbar mobile con hamburguesa */}
+      <div className="mobile-topbar" style={{
+        display: 'none', position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+        background: '#2E2A2B', padding: '0 16px', height: 52,
+        alignItems: 'center', justifyContent: 'space-between',
+        borderBottom: '0.5px solid rgba(255,255,255,0.08)'
+      }}>
+        <div style={{ fontFamily: 'var(--font-title)', fontSize: 15, fontWeight: 700, letterSpacing: '0.1em' }}>
+          <span style={{ color: '#fff' }}>ND</span>
+          <span style={{ color: 'var(--nd-light)' }}>TRACKER</span>
+          <span style={{ color: 'var(--nd-light)', marginLeft: 2 }}>5S</span>
+        </div>
+        <button onClick={() => setMenuOpen(true)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}>
+          <Menu size={22} />
+        </button>
+      </div>
+
+      {/* Overlay menu mobile */}
+      {menuOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex' }}>
+          {/* Fondo oscuro */}
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} onClick={() => setMenuOpen(false)} />
+          {/* Panel */}
+          <div style={{ position: 'relative', width: 240, height: '100vh', overflowY: 'auto', zIndex: 1 }}>
+            <div style={{ position: 'absolute', top: 14, right: 14, zIndex: 2 }}>
+              <button onClick={() => setMenuOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', padding: 4 }}>
+                <X size={18} />
+              </button>
+            </div>
+            <SidebarContent onNavClick={() => setMenuOpen(false)} />
+          </div>
+        </div>
+      )}
+
+      {/* Contenido principal */}
       <div style={{ flex: 1, background: 'var(--nd-bg)', overflow: 'auto', minWidth: 0 }}>
         {children}
       </div>
@@ -122,20 +170,26 @@ export function Layout({ children }) {
 
 // ── PageWrap ─────────────────────────────────────────────────────────────────
 export function PageWrap({ children }) {
-  return <div style={{ padding: '24px 28px' }} className="fade-in">{children}</div>
+  return (
+    <div style={{ padding: '24px 28px' }} className="page-content fade-in">
+      {/* Espaciado extra en mobile para el topbar fijo */}
+      <style>{`@media (max-width: 768px) { .page-content { padding-top: 68px !important; } }`}</style>
+      {children}
+    </div>
+  )
 }
 
-// ── Topbar ───────────────────────────────────────────────────────────────────
+// ── Topbar ─────────────────────────────────────────────────────────────────────
 export function Topbar({ title, subtitle, children }) {
   const { usuarioActual } = useStore()
   const navigate = useNavigate()
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22 }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22, flexWrap: 'wrap', gap: 10 }}>
       <div>
         <h1 style={{ fontFamily: 'var(--font-title)', fontSize: 22, fontWeight: 700, color: 'var(--nd-black)', lineHeight: 1.15 }}>{title}</h1>
         {subtitle && <p style={{ fontSize: 13, color: '#888', marginTop: 3 }}>{subtitle}</p>}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'wrap' }}>
         {children}
         <div onClick={() => navigate('/perfil')} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
           <RolBadge rol={usuarioActual?.rol} />
@@ -178,15 +232,15 @@ export function RolBadge({ rol }) {
   )
 }
 
-// ── Badge genérico ────────────────────────────────────────────────────────────
+// ── Badge ─────────────────────────────────────────────────────────────────────
 export function Badge({ children, color = 'mid', style: extra }) {
   const s = {
-    mid:     { bg: 'var(--nd-mid)',                color: '#fff'         },
-    soft:    { bg: 'rgba(66,85,99,0.1)',           color: 'var(--nd-mid)'},
-    amber:   { bg: 'rgba(196,116,54,0.12)',        color: 'var(--nd-amber)'},
-    red:     { bg: '#fee2e2',                      color: '#991b1b'      },
-    green:   { bg: '#d1fae5',                      color: '#065f46'      },
-    yellow:  { bg: '#fef3c7',                      color: '#92400e'      }
+    mid:    { bg: 'var(--nd-mid)',              color: '#fff'            },
+    soft:   { bg: 'rgba(66,85,99,0.1)',         color: 'var(--nd-mid)'  },
+    amber:  { bg: 'rgba(196,116,54,0.12)',      color: 'var(--nd-amber)'},
+    red:    { bg: '#fee2e2',                    color: '#991b1b'         },
+    green:  { bg: '#d1fae5',                    color: '#065f46'         },
+    yellow: { bg: '#fef3c7',                    color: '#92400e'         }
   }
   const st = s[color] || s.mid
   return (
@@ -235,11 +289,11 @@ export function Btn({ children, onClick, variant = 'primary', style, disabled, t
     letterSpacing: '0.02em', transition: 'opacity .15s', ...style
   }
   const v = {
-    primary:   { background: 'var(--nd-black)',                color: 'var(--nd-light)' },
+    primary:   { background: 'var(--nd-black)',                                       color: 'var(--nd-light)' },
     secondary: { background: 'transparent', border: '0.5px solid var(--nd-border2)', color: '#555' },
-    danger:    { background: 'rgba(220,38,38,0.08)', color: '#dc2626', border: '0.5px solid rgba(220,38,38,0.2)' },
-    amber:     { background: 'var(--nd-amber)',               color: '#fff' },
-    green:     { background: '#1a7a4a',                       color: '#fff' }
+    danger:    { background: 'rgba(220,38,38,0.08)', color: '#dc2626',                border: '0.5px solid rgba(220,38,38,0.2)' },
+    amber:     { background: 'var(--nd-amber)',                                       color: '#fff' },
+    green:     { background: '#1a7a4a',                                               color: '#fff' }
   }
   return (
     <button type={type} style={{ ...base, ...(v[variant] || v.primary) }} onClick={onClick} disabled={disabled}>
@@ -281,7 +335,8 @@ export function Textarea({ label, required, rows = 3, ...props }) {
         width: '100%', padding: '8px 10px',
         border: '0.5px solid var(--nd-border2)', borderRadius: 7,
         fontSize: 14, background: 'var(--nd-white)', color: 'var(--nd-black)',
-        boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.5
+        boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.5,
+        fontFamily: 'var(--font-body)'
       }} {...props} />
     </div>
   )
