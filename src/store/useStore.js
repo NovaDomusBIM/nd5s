@@ -35,18 +35,7 @@ export const useStore = create((set, get) => ({
   initAuth: () => {
     const unsub = onAuthChange(async (firebaseUser) => {
       if (firebaseUser) {
-        const basicUser = {
-          id:        firebaseUser.uid,
-          nombre:    firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuario',
-          iniciales: (firebaseUser.email || 'AN').slice(0, 2).toUpperCase(),
-          email:     firebaseUser.email || '',
-          rol:       'operario',
-          color:     '#425563',
-          anonimo:   firebaseUser.isAnonymous
-        }
-        set({ usuarioActual: basicUser, cargando: false })
-        get().initListeners()
-
+        // Mantener cargando:true hasta obtener el rol real de Firestore
         if (!firebaseUser.isAnonymous) {
           try {
             let usuarios = await getCol('usuarios')
@@ -54,13 +43,43 @@ export const useStore = create((set, get) => ({
               await seedIfEmpty(PROYECTOS_SEED, USUARIOS_SEED)
               usuarios = await getCol('usuarios')
             }
-            const u = usuarios.find(x => x.email === firebaseUser.email) || basicUser
+            const u = usuarios.find(x => x.email === firebaseUser.email) || {
+              id:        firebaseUser.uid,
+              nombre:    firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuario',
+              iniciales: (firebaseUser.email || 'AN').slice(0, 2).toUpperCase(),
+              email:     firebaseUser.email || '',
+              rol:       'operario',
+              color:     '#425563',
+              anonimo:   false
+            }
             const proyectos = await getCol('proyectos')
             const proyectoActivo = proyectos.find(p => p.estado === 'activo') || proyectos[0] || null
-            set({ usuarioActual: u, usuarios, proyectos, proyectoActivo })
+            set({ usuarioActual: u, usuarios, proyectos, proyectoActivo, cargando: false })
+            get().initListeners()
           } catch (e) {
             console.error('Error Firestore:', e)
+            // Fallback si falla Firestore
+            set({
+              usuarioActual: {
+                id: firebaseUser.uid, email: firebaseUser.email || '',
+                nombre: firebaseUser.email?.split('@')[0] || 'Usuario',
+                iniciales: (firebaseUser.email || 'AN').slice(0, 2).toUpperCase(),
+                rol: 'operario', color: '#425563', anonimo: false
+              },
+              cargando: false
+            })
           }
+        } else {
+          // Anónimo — sin consulta a Firestore
+          set({
+            usuarioActual: {
+              id: firebaseUser.uid, nombre: 'Anónimo',
+              iniciales: 'AN', email: '', rol: 'operario',
+              color: '#425563', anonimo: true
+            },
+            cargando: false
+          })
+          get().initListeners()
         }
       } else {
         get()._unsubs.forEach(u => u())
