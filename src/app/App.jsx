@@ -27,9 +27,9 @@ export default function App() {
       <Route path="/dashboard"    element={<P><Dashboard /></P>} />
       <Route path="/hallazgos"    element={<P><Hallazgos /></P>} />
       <Route path="/innecesarios" element={<P><Innecesarios /></P>} />
-      <Route path="/tablero"      element={<P roles={['admin','direccion','lider']}><Tablero /></P>} />
-      <Route path="/directorio"   element={<P roles={['admin','direccion','lider']}><Directorio /></P>} />
-      <Route path="/estadisticas" element={<P roles={['admin','direccion','lider']}><Estadisticas /></P>} />
+      <Route path="/tablero"      element={<P roles={['admin','direccion','jefe_obra','lider','sh']}><Tablero /></P>} />
+      <Route path="/directorio"   element={<P roles={['admin','direccion','jefe_obra','lider','sh']}><Directorio /></P>} />
+      <Route path="/estadisticas" element={<P roles={['admin','direccion','jefe_obra','lider','sh']}><Estadisticas /></P>} />
       <Route path="/proyectos"    element={<P roles={['admin']}><Proyectos /></P>} />
       <Route path="/usuarios"     element={<P roles={['admin']}><Usuarios /></P>} />
       <Route path="/config"       element={<P roles={['admin']}><Configuracion /></P>} />

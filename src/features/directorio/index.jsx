@@ -59,11 +59,13 @@ export function Directorio() {
     if (!form.nombre.trim()) { setError('El nombre es obligatorio'); return }
     setSaving(true)
     try {
+      const iniciales = form.iniciales || form.nombre.split(' ').map(x => x[0]).join('').slice(0,2).toUpperCase()
       const data = {
         ...form,
-        proyectoId: proyectoActivo.id,
-        iniciales: form.iniciales || form.nombre.split(' ').map(x => x[0]).join('').slice(0,2).toUpperCase(),
-        rubros: form.rubros || [],
+        proyectoId:    proyectoActivo.id,
+        iniciales,
+        rubros:        Array.isArray(form.rubros) ? form.rubros : (form.rubro ? [form.rubro] : []),
+        rubro:         null,  // limpiar campo viejo
         actualizadoEn: new Date().toISOString()
       }
       if (modal === 'nuevo') {
@@ -200,14 +202,13 @@ export function Directorio() {
               <div style={{ display: 'flex', gap: 8 }}>
                 <div style={{ flex: 1, position: 'relative' }}>
                   <input
-                    list="rubros-list"
                     value={rubroInput}
                     onChange={e => setRubroInput(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); agregarRubro() } }}
-                    placeholder="Ej: Hormigón, Mampostería..."
+                    placeholder="Escribí el rubro y tocá Agregar o Enter..."
                     style={{ width: '100%', height: 36, padding: '0 10px', border: '0.5px solid var(--nd-border2)', borderRadius: 7, fontSize: 14, boxSizing: 'border-box' }}
                   />
-                  <datalist id="rubros-list">
+                  <datalist id="rubros-list-hidden">
                     {RUBROS.map(r => <option key={r.id} value={r.nombre} />)}
                   </datalist>
                 </div>
@@ -215,7 +216,16 @@ export function Directorio() {
                   + Agregar
                 </Btn>
               </div>
-              <p style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>Enter o tocá "Agregar" para sumar cada rubro. Podés escribir o elegir de la lista.</p>
+              {/* Sugerencias rápidas */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
+                {['HyS','Hormigón','Mampostería','Sanitario','Electricidad','Climatización','Herrería','Revoques','Yesería','Pintura','Carpintería','Pisos','Limpieza'].filter(s => !form.rubros?.includes(s)).slice(0,8).map(s => (
+                  <button key={s} type="button" onClick={() => { setRubroInput(''); setForm(f => ({ ...f, rubros: [...(f.rubros||[]), s] })) }}
+                    style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, border: '0.5px solid var(--nd-border2)', background: 'transparent', cursor: 'pointer', color: '#888', fontFamily: 'var(--font-body)' }}>
+                    + {s}
+                  </button>
+                ))}
+              </div>
+              <p style={{ fontSize: 11, color: '#aaa', marginTop: 6 }}>Escribí el nombre y presioná "Agregar" o Enter. También podés tocar las sugerencias de arriba.</p>
             </div>
 
             <Input label="Teléfono (WhatsApp)" type="tel" placeholder="5491112345678" value={form.telefono || ''} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} />

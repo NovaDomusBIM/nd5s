@@ -33,7 +33,7 @@ export const USUARIOS_SEED = [
     nombre: 'Eduardo Cáceres',
     iniciales: 'EC',
     email: 'ec@novadomus.com.ar',
-    rol: 'direccion',
+    rol: 'jefe_obra',
     color: '#5B9BD5',
     proyectos: ['p10'],
     telefono: '',
@@ -44,7 +44,7 @@ export const USUARIOS_SEED = [
     nombre: 'Lucas Vega',
     iniciales: 'LV',
     email: 'lv@novadomus.com.ar',
-    rol: 'direccion',
+    rol: 'jefe_obra',
     color: '#8E44AD',
     proyectos: ['p10'],
     telefono: '',
@@ -76,10 +76,12 @@ export const USUARIOS_SEED = [
 
 // ── Roles 5S ─────────────────────────────────────────────────────────────────
 export const ROLES = {
-  admin:     { label: 'Admin',              color: '#231F20' },
-  direccion: { label: 'Dirección',          color: '#425563' },
-  lider:     { label: 'Líder de rubro',     color: '#1a7a4a' },
-  operario:  { label: 'Operario/Referente', color: '#b86a00' }
+  admin:      { label: 'Admin',              color: '#231F20' },
+  direccion:  { label: 'Dirección de Obra',  color: '#425563' },
+  jefe_obra:  { label: 'Jefe de Obra',       color: '#1D6FA5' },
+  lider:      { label: 'Líder de Rubro',     color: '#1a7a4a' },
+  sh:         { label: 'Seg. e Higiene',     color: '#7B3FA0' },
+  operario:   { label: 'Operario/Referente', color: '#b86a00' }
 }
 
 // ── Rubros / contratos de obra ────────────────────────────────────────────────

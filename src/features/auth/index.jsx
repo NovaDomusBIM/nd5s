@@ -1,23 +1,34 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, Navigate, useLocation } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore'
 
 export function Login() {
-  const { login, usuarioActual, cargando, cargarProyectos } = useStore()
-  const navigate = useNavigate()
+  const { login, usuarioActual, cargando } = useStore()
+  const navigate   = useNavigate()
   const [email,    setEmail]    = useState('')
   const [pass,     setPass]     = useState('')
   const [error,    setError]    = useState('')
   const [loading,  setLoading]  = useState(false)
   const [showPass, setShowPass] = useState(false)
 
+  // Cuando initAuth termina de resolver el usuario, redirige
   useEffect(() => {
-    if (usuarioActual && !cargando) navigate('/dashboard', { replace: true })
-  }, [usuarioActual, cargando])
+    if (!cargando && usuarioActual) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [cargando, usuarioActual])
 
+  // Mostrar pantalla de carga mientras initAuth trabaja
   if (cargando) return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-title)', color: '#aaa', fontSize: 13 }}>
-      Cargando...
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--nd-bg)' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontFamily: 'var(--font-title)', fontSize: 18, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 16 }}>
+          <span style={{ color: 'var(--nd-black)' }}>ND</span>
+          <span style={{ color: 'var(--nd-mid)' }}>TRACKER</span>
+          <span style={{ color: 'var(--nd-mid)' }}> 5S</span>
+        </div>
+        <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--nd-mid)20', borderTopColor: 'var(--nd-mid)', animation: 'spin .7s linear infinite', margin: '0 auto' }} />
+      </div>
     </div>
   )
 
@@ -25,10 +36,10 @@ export function Login() {
     if (!email || !pass) { setError('Completá los campos'); return }
     setLoading(true); setError('')
     try {
+      // login() solo hace signIn en Firebase Auth.
+      // onAuthStateChanged dispara initAuth() que resuelve el rol desde Firestore.
+      // El useEffect de arriba redirige cuando cargando pasa a false y hay usuarioActual.
       await login(email.trim(), pass)
-      // Asegurar que los proyectos estén cargados antes de navegar
-      await cargarProyectos()
-      navigate('/dashboard', { replace: true })
     } catch {
       setError('Email o contraseña incorrectos')
       setLoading(false)
@@ -44,7 +55,7 @@ export function Login() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Panel izquierdo — oculto en mobile */}
+      {/* Panel izquierdo */}
       <div style={{ width: 240, background: 'var(--nd-dark)', display: 'flex', flexDirection: 'column', padding: '40px 24px', flexShrink: 0 }} className="login-panel">
         <style>{`@media (max-width: 600px) { .login-panel { display: none !important; } }`}</style>
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
@@ -66,7 +77,7 @@ export function Login() {
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.18)' }}>V1.5</div>
+        <div style={{ marginTop: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.18)' }}>V1.7</div>
       </div>
 
       {/* Panel derecho */}
@@ -76,12 +87,18 @@ export function Login() {
           <p style={{ fontSize: 13, color: '#888', marginBottom: 28 }}>NDTracker 5S · NovaDomus</p>
 
           <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 5, fontWeight: 600 }}>Email</label>
-          <input style={inp} type="email" placeholder="tu@novadomus.com.ar" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} />
+          <input style={inp} type="email" placeholder="tu@novadomus.com.ar" value={email}
+            onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} />
 
           <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 5, fontWeight: 600 }}>Contraseña</label>
           <div style={{ position: 'relative', marginBottom: 6 }}>
-            <input style={{ ...inp, marginBottom: 0, paddingRight: 44 }} type={showPass ? 'text' : 'password'} placeholder="••••••••" value={pass} onChange={e => setPass(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} />
-            <button type="button" onMouseDown={() => setShowPass(true)} onMouseUp={() => setShowPass(false)} onMouseLeave={() => setShowPass(false)} onTouchStart={() => setShowPass(true)} onTouchEnd={() => setShowPass(false)}
+            <input style={{ ...inp, marginBottom: 0, paddingRight: 44 }}
+              type={showPass ? 'text' : 'password'} placeholder="••••••••"
+              value={pass} onChange={e => setPass(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()} />
+            <button type="button"
+              onMouseDown={() => setShowPass(true)} onMouseUp={() => setShowPass(false)}
+              onMouseLeave={() => setShowPass(false)} onTouchStart={() => setShowPass(true)} onTouchEnd={() => setShowPass(false)}
               style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#aaa', padding: 4, display: 'flex', alignItems: 'center' }}>
               {showPass
                 ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
@@ -98,7 +115,7 @@ export function Login() {
             cursor: loading ? 'wait' : 'pointer', marginTop: 12,
             fontFamily: 'var(--font-title)', letterSpacing: '0.06em', opacity: loading ? 0.7 : 1
           }}>
-            {loading ? 'Ingresando...' : 'INGRESAR →'}
+            {loading ? 'Verificando...' : 'INGRESAR →'}
           </button>
         </div>
       </div>
@@ -110,8 +127,8 @@ export function ProtectedRoute({ children, rolesPermitidos }) {
   const { usuarioActual, cargando } = useStore()
 
   if (cargando) return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-title)', color: '#aaa', fontSize: 13 }}>
-      Cargando...
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--nd-bg)' }}>
+      <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--nd-mid)20', borderTopColor: 'var(--nd-mid)', animation: 'spin .7s linear infinite' }} />
     </div>
   )
 

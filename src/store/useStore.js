@@ -5,7 +5,7 @@ import {
   getCol, listenCol, addItem, setItem, updateItem, deleteItem, seedIfEmpty
 } from '../services/firebase'
 
-// ── Device ID para trazabilidad anónima ────────────────────────────────────
+// ── Device ID ─────────────────────────────────────────────────────────────────
 const getDeviceId = () => {
   let id = localStorage.getItem('nd5s_device_id')
   if (!id) {
@@ -15,126 +15,125 @@ const getDeviceId = () => {
   return id
 }
 
-// ── Nombre guardado en dispositivo (operarios) ─────────────────────────────
 export const getNombreGuardado = () => localStorage.getItem('nd5s_nombre') || ''
 export const setNombreGuardado = (n) => localStorage.setItem('nd5s_nombre', n)
 
+// ── Buscar usuario en Firestore por email ─────────────────────────────────────
+// Esta es la función central que resuelve el bug de roles.
+// SIEMPRE busca en nd5s_usuarios antes de setear el estado.
+const resolverUsuario = async (firebaseUser) => {
+  let usuarios = await getCol('usuarios')
+  if (!usuarios.length) {
+    await seedIfEmpty(PROYECTOS_SEED, USUARIOS_SEED)
+    usuarios = await getCol('usuarios')
+  }
+  const encontrado = usuarios.find(x =>
+    x.email?.toLowerCase().trim() === firebaseUser.email?.toLowerCase().trim()
+  )
+  if (encontrado) return { usuario: encontrado, usuarios }
+
+  // No encontrado en Firestore — fallback como operario
+  const fallback = {
+    id:        firebaseUser.uid,
+    nombre:    firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuario',
+    iniciales: (firebaseUser.email || 'AN').slice(0, 2).toUpperCase(),
+    email:     firebaseUser.email || '',
+    rol:       'operario',
+    color:     '#b86a00',
+    anonimo:   false
+  }
+  return { usuario: fallback, usuarios }
+}
+
 export const useStore = create((set, get) => ({
   // ── Estado ─────────────────────────────────────────────────────────────────
-  usuarioActual: null,
-  cargando:      true,
-  proyectos:     [],
-  proyectoActivo: null,  // proyecto seleccionado
-  usuarios:      [],
-  hallazgos:     [],
-  innecesarios:  [],
-  _unsubs:       [],
-  deviceId:      getDeviceId(),
+  usuarioActual:  null,
+  cargando:       true,
+  proyectos:      [],
+  proyectoActivo: null,
+  usuarios:       [],
+  hallazgos:      [],
+  innecesarios:   [],
+  _unsubs:        [],
+  deviceId:       getDeviceId(),
 
-  // ── Auth ───────────────────────────────────────────────────────────────────
+  // ── initAuth — se ejecuta UNA vez al arrancar la app ──────────────────────
   initAuth: () => {
     const unsub = onAuthChange(async (firebaseUser) => {
       if (firebaseUser) {
-        // Mantener cargando:true hasta obtener el rol real de Firestore
         if (!firebaseUser.isAnonymous) {
           try {
-            let usuarios = await getCol('usuarios')
-            if (!usuarios.length) {
-              await seedIfEmpty(PROYECTOS_SEED, USUARIOS_SEED)
-              usuarios = await getCol('usuarios')
-            }
-            const u = usuarios.find(x => x.email === firebaseUser.email) || {
-              id:        firebaseUser.uid,
-              nombre:    firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuario',
-              iniciales: (firebaseUser.email || 'AN').slice(0, 2).toUpperCase(),
-              email:     firebaseUser.email || '',
-              rol:       'operario',
-              color:     '#425563',
-              anonimo:   false
-            }
+            const { usuario, usuarios } = await resolverUsuario(firebaseUser)
             const proyectos = await getCol('proyectos')
             const proyectoActivo = proyectos.find(p => p.estado === 'activo') || proyectos[0] || null
-            set({ usuarioActual: u, usuarios, proyectos, proyectoActivo, cargando: false })
-            get().initListeners()
+            set({ usuarioActual: usuario, usuarios, proyectos, proyectoActivo, cargando: false })
+            get()._iniciarListeners(proyectoActivo)
           } catch (e) {
-            console.error('Error Firestore:', e)
-            // Fallback si falla Firestore
-            set({
-              usuarioActual: {
-                id: firebaseUser.uid, email: firebaseUser.email || '',
-                nombre: firebaseUser.email?.split('@')[0] || 'Usuario',
-                iniciales: (firebaseUser.email || 'AN').slice(0, 2).toUpperCase(),
-                rol: 'operario', color: '#425563', anonimo: false
-              },
-              cargando: false
-            })
+            console.error('initAuth error:', e)
+            set({ cargando: false })
           }
         } else {
-          // Anónimo — sin consulta a Firestore
           set({
             usuarioActual: {
               id: firebaseUser.uid, nombre: 'Anónimo',
               iniciales: 'AN', email: '', rol: 'operario',
-              color: '#425563', anonimo: true
+              color: '#b86a00', anonimo: true
             },
             cargando: false
           })
-          get().initListeners()
         }
       } else {
-        get()._unsubs.forEach(u => u())
-        set({ usuarioActual: null, cargando: false, hallazgos: [], innecesarios: [] })
+        get()._unsubs.forEach(u => typeof u === 'function' && u())
+        set({ usuarioActual: null, cargando: false, hallazgos: [], innecesarios: [], _unsubs: [] })
       }
     })
     set(s => ({ _unsubs: [...s._unsubs, unsub] }))
   },
 
+  // ── login — busca el rol en Firestore antes de setear estado ──────────────
   login: async (email, pass) => {
-    const cred = await loginFirebase(email, pass)
-    const basicUser = {
-      id:        cred.user.uid,
-      nombre:    cred.user.displayName || email.split('@')[0],
-      iniciales: email.slice(0, 2).toUpperCase(),
-      email,
-      rol:       'operario',
-      color:     '#425563',
-      anonimo:   false
-    }
-    set({ usuarioActual: basicUser, cargando: false })
-    get().initListeners()
+    // NO seteamos estado aquí todavía — esperamos a initAuth que dispara automáticamente
+    // Simplemente hacemos el login en Firebase Auth
+    await loginFirebase(email, pass)
+    // initAuth se dispara solo via onAuthStateChanged
   },
 
   logout: async () => {
-    get()._unsubs.forEach(u => u())
+    get()._unsubs.forEach(u => typeof u === 'function' && u())
     set({ _unsubs: [] })
     await logoutFirebase()
-    set({ usuarioActual: null, proyectos: [], hallazgos: [], innecesarios: [] })
+    set({ usuarioActual: null, proyectos: [], hallazgos: [], innecesarios: [], proyectoActivo: null })
   },
 
-  // ── Listeners en tiempo real ───────────────────────────────────────────────
+  // ── Listeners internos ────────────────────────────────────────────────────
+  _iniciarListeners: (proyectoActivo) => {
+    if (!proyectoActivo) return
+    const u1 = listenCol('hallazgos',    h => set({ hallazgos: h }))
+    const u2 = listenCol('innecesarios', i => set({ innecesarios: i }))
+    set(s => ({ _unsubs: [...s._unsubs, u1, u2] }))
+  },
+
+  // ── initListeners público (para cuando cambia el proyecto) ────────────────
   initListeners: async () => {
     let { proyectoActivo, proyectos } = get()
     if (!proyectos.length) {
       try {
-        proyectos = await getCol("proyectos")
-        proyectoActivo = proyectos.find(p => p.estado === "activo") || proyectos[0] || null
+        proyectos = await getCol('proyectos')
+        proyectoActivo = proyectos.find(p => p.estado === 'activo') || proyectos[0] || null
         set({ proyectos, proyectoActivo })
       } catch {}
     }
     if (!proyectoActivo) return
-    const u1 = listenCol("hallazgos",    h => set({ hallazgos: h }))
-    const u2 = listenCol("innecesarios", i => set({ innecesarios: i }))
-    set(s => ({ _unsubs: [...s._unsubs, u1, u2] }))
+    get()._iniciarListeners(proyectoActivo)
   },
 
   setProyectoActivo: (proyecto) => {
-    // Cancelar listeners anteriores excepto el de auth
     get()._unsubs.forEach(u => typeof u === 'function' && u())
     set({ proyectoActivo: proyecto, hallazgos: [], innecesarios: [], _unsubs: [] })
-    get().initListeners()
+    get()._iniciarListeners(proyecto)
   },
 
-  // ── Proyectos ──────────────────────────────────────────────────────────────
+  // ── Proyectos ─────────────────────────────────────────────────────────────
   cargarProyectos: async () => {
     const proyectos = await getCol('proyectos')
     const activo = proyectos.find(p => p.estado === 'activo') || proyectos[0] || null
@@ -153,7 +152,7 @@ export const useStore = create((set, get) => ({
     await get().cargarProyectos()
   },
 
-  // ── Usuarios ───────────────────────────────────────────────────────────────
+  // ── Usuarios ──────────────────────────────────────────────────────────────
   cargarUsuarios: async () => {
     const usuarios = await getCol('usuarios')
     set({ usuarios })
@@ -176,19 +175,19 @@ export const useStore = create((set, get) => ({
     await get().cargarUsuarios()
   },
 
-  // ── Hallazgos ──────────────────────────────────────────────────────────────
+  // ── Hallazgos ─────────────────────────────────────────────────────────────
   agregarHallazgo: async (data) => {
     const { proyectoActivo, usuarioActual, deviceId } = get()
     const hallazgo = {
       ...data,
-      proyectoId:    proyectoActivo?.id || '',
-      proyectoCodigo:proyectoActivo?.codigo || '',
-      creadoPor:     usuarioActual?.nombre || data.nombreCargador || 'Anónimo',
-      creadoPorId:   usuarioActual?.id || null,
+      proyectoId:     proyectoActivo?.id || '',
+      proyectoCodigo: proyectoActivo?.codigo || '',
+      creadoPor:      usuarioActual?.nombre || data.nombreCargador || 'Anónimo',
+      creadoPorId:    usuarioActual?.id || null,
       deviceId,
-      estado:        'abierto',
-      creadoEn:      new Date().toISOString(),
-      actualizadoEn: new Date().toISOString()
+      estado:         'abierto',
+      creadoEn:       new Date().toISOString(),
+      actualizadoEn:  new Date().toISOString()
     }
     const ref = await addItem('hallazgos', hallazgo)
     return ref.id
@@ -212,7 +211,7 @@ export const useStore = create((set, get) => ({
     await deleteItem('hallazgos', id)
   },
 
-  // ── Innecesarios ───────────────────────────────────────────────────────────
+  // ── Innecesarios ──────────────────────────────────────────────────────────
   agregarInnecesario: async (data) => {
     const { proyectoActivo, usuarioActual, deviceId } = get()
     const item = {

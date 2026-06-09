@@ -36,7 +36,8 @@ function SidebarContent({ onNavClick }) {
 
   const esAdmin     = rol === 'admin'
   const esDireccion = ['admin', 'direccion'].includes(rol)
-  const esLider     = ['admin', 'direccion', 'lider'].includes(rol)
+  const esJefeOSuperior = ['admin', 'direccion', 'jefe_obra'].includes(rol)
+  const esLider     = ['admin', 'direccion', 'jefe_obra', 'lider', 'sh'].includes(rol)
 
   return (
     <div style={{
@@ -65,7 +66,7 @@ function SidebarContent({ onNavClick }) {
       <NavItem to="/hallazgos"   icon={AlertTriangle}  label="Hallazgos"    onClick={onNavClick} />
       {esLider && <NavItem to="/innecesarios" icon={Package} label="Innecesarios" onClick={onNavClick} />}
 
-      {esLider && <>
+      {esJefeOSuperior && <>
         <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '14px 0 6px 10px', fontFamily: 'var(--font-title)' }}>Gestión</p>
         <NavItem to="/tablero"      icon={LayoutDashboard} label="Tablero 5S"    onClick={onNavClick} />
         <NavItem to="/directorio"   icon={Users}           label="Directorio"    onClick={onNavClick} />
@@ -219,10 +220,12 @@ export function Avatar({ iniciales, color, size = 32 }) {
 // ── RolBadge ─────────────────────────────────────────────────────────────────
 export function RolBadge({ rol }) {
   const map = {
-    admin:     { bg: 'rgba(35,31,32,0.1)',   color: '#231F20', label: 'Admin'      },
-    direccion: { bg: 'rgba(66,85,99,0.1)',   color: '#425563', label: 'Dirección'  },
-    lider:     { bg: 'rgba(26,122,74,0.1)',  color: '#1a7a4a', label: 'Líder'      },
-    operario:  { bg: 'rgba(184,106,0,0.1)',  color: '#b86a00', label: 'Operario'   }
+    admin:     { bg: 'rgba(35,31,32,0.1)',   color: '#231F20', label: 'Admin'           },
+    direccion: { bg: 'rgba(66,85,99,0.1)',   color: '#425563', label: 'Dirección'       },
+    jefe_obra: { bg: 'rgba(29,111,165,0.1)', color: '#1D6FA5', label: 'Jefe de Obra'    },
+    lider:     { bg: 'rgba(26,122,74,0.1)',  color: '#1a7a4a', label: 'Líder de Rubro'  },
+    sh:        { bg: 'rgba(123,63,160,0.1)', color: '#7B3FA0', label: 'S&H'             },
+    operario:  { bg: 'rgba(184,106,0,0.1)',  color: '#b86a00', label: 'Operario'        }
   }
   const s = map[rol] || map.operario
   return (
