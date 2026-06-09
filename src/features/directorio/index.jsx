@@ -218,7 +218,7 @@ export function Directorio() {
               </div>
               {/* Sugerencias rápidas */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
-                {['HyS','Hormigón','Mampostería','Sanitario','Electricidad','Climatización','Herrería','Revoques','Yesería','Pintura','Carpintería','Pisos','Limpieza'].filter(s => !form.rubros?.includes(s)).slice(0,8).map(s => (
+                {['Contrato HYS','Contrato Hormigón','Contrato Mampostería','Contrato Sanitario','Contrato Electricidad','Contrato Climatización','Contrato Herrería','Contrato Revoques','Contrato Yesería','Contrato Pintura','Contrato Carpintería Obra','Contrato Pisos de Cemento','Contrato Limpieza','Cortinas'].filter(s => !form.rubros?.includes(s)).slice(0,10).map(s => (
                   <button key={s} type="button" onClick={() => { setRubroInput(''); setForm(f => ({ ...f, rubros: [...(f.rubros||[]), s] })) }}
                     style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, border: '0.5px solid var(--nd-border2)', background: 'transparent', cursor: 'pointer', color: '#888', fontFamily: 'var(--font-body)' }}>
                     + {s}
