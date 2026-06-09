@@ -187,3 +187,11 @@ export function Configuracion() {
     </Layout>
   )
 }
+
+// ── Panel de permisos exportado para uso futuro
+export const PERMISOS_DEFAULT = {
+  admin:     { tablero: true,  estadisticas: true,  directorio: true,  innecesarios: true,  exportar: true,  config: true  },
+  direccion: { tablero: true,  estadisticas: true,  directorio: true,  innecesarios: true,  exportar: true,  config: false },
+  lider:     { tablero: true,  estadisticas: true,  directorio: true,  innecesarios: true,  exportar: false, config: false },
+  operario:  { tablero: false, estadisticas: false,  directorio: false, innecesarios: true,  exportar: false, config: false }
+}
