@@ -61,6 +61,9 @@ export const useStore = create((set, get) => ({
   initAuth: () => {
     const unsub = onAuthChange(async (firebaseUser) => {
       if (firebaseUser) {
+        // Siempre poner cargando:true al detectar un usuario
+        // para que la UI no renderice con rol incorrecto mientras Firestore responde
+        set({ cargando: true })
         if (!firebaseUser.isAnonymous) {
           try {
             const { usuario, usuarios } = await resolverUsuario(firebaseUser)
