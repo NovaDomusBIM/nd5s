@@ -1,29 +1,27 @@
 import React, { useState, useEffect } from 'react'
-import { Users, Plus, Edit2, Trash2, Phone } from 'lucide-react'
+import { Users, Plus, Edit2, Trash2, Phone, X } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { getCol, setItem, updateItem, deleteItem } from '../../services/firebase'
 import {
-  Layout, PageWrap, Topbar, Card, CardTitle, Btn,
+  Layout, PageWrap, Topbar, Card, Btn,
   Input, Select, Modal, EmptyState, Avatar, Badge
 } from '../../components'
 import { RUBROS } from '../../data/mock'
 
 const ROLES_DIRECTORIO = ['Jefe de Obra', 'Líder', 'Referente', 'Seguridad e Higiene', 'Capataz', 'Subcontratista', 'Otro']
+const COLORES = ['#425563','#5B9BD5','#8E44AD','#27AE60','#C47436','#C0392B','#2980B9','#F39C12']
 
 export function Directorio() {
   const { proyectoActivo } = useStore()
   const [contactos, setContactos] = useState([])
   const [modal,     setModal]     = useState(null)
   const [form,      setForm]      = useState({})
+  const [rubroInput, setRubroInput] = useState('')
   const [saving,    setSaving]    = useState(false)
   const [error,     setError]     = useState('')
   const [busqueda,  setBusqueda]  = useState('')
 
-  // Cargar contactos del proyecto activo
-  useEffect(() => {
-    if (!proyectoActivo) return
-    cargar()
-  }, [proyectoActivo])
+  useEffect(() => { if (proyectoActivo) cargar() }, [proyectoActivo])
 
   const cargar = async () => {
     try {
@@ -33,11 +31,29 @@ export function Directorio() {
   }
 
   const abrirNuevo = () => {
-    setForm({ nombre: '', iniciales: '', rol: 'Líder', rubro: '', telefono: '', email: '', observacion: '' })
+    setForm({ nombre: '', iniciales: '', rol: 'Líder', rubros: [], telefono: '', email: '', observacion: '', color: '#425563' })
+    setRubroInput('')
     setModal('nuevo'); setError('')
   }
 
-  const abrirEditar = (c) => { setForm({ ...c }); setModal(c); setError('') }
+  const abrirEditar = (c) => {
+    setForm({ ...c, rubros: c.rubros || (c.rubro ? [c.rubro] : []) })
+    setRubroInput('')
+    setModal(c); setError('')
+  }
+
+  // Agregar rubro al array
+  const agregarRubro = () => {
+    const r = rubroInput.trim()
+    if (!r) return
+    if (form.rubros?.includes(r)) { setRubroInput(''); return }
+    setForm(f => ({ ...f, rubros: [...(f.rubros || []), r] }))
+    setRubroInput('')
+  }
+
+  const quitarRubro = (r) => {
+    setForm(f => ({ ...f, rubros: f.rubros.filter(x => x !== r) }))
+  }
 
   const guardar = async () => {
     if (!form.nombre.trim()) { setError('El nombre es obligatorio'); return }
@@ -47,6 +63,7 @@ export function Directorio() {
         ...form,
         proyectoId: proyectoActivo.id,
         iniciales: form.iniciales || form.nombre.split(' ').map(x => x[0]).join('').slice(0,2).toUpperCase(),
+        rubros: form.rubros || [],
         actualizadoEn: new Date().toISOString()
       }
       if (modal === 'nuevo') {
@@ -70,19 +87,16 @@ export function Directorio() {
   const lista = contactos.filter(c =>
     !busqueda ||
     c.nombre?.toLowerCase().includes(busqueda.toLowerCase()) ||
-    c.rubro?.toLowerCase().includes(busqueda.toLowerCase()) ||
+    c.rubros?.some(r => r.toLowerCase().includes(busqueda.toLowerCase())) ||
     c.rol?.toLowerCase().includes(busqueda.toLowerCase())
   )
 
-  // Agrupar por rol
   const grupos = lista.reduce((acc, c) => {
     const k = c.rol || 'Otro'
     if (!acc[k]) acc[k] = []
     acc[k].push(c)
     return acc
   }, {})
-
-  const COLORES = ['#425563','#5B9BD5','#8E44AD','#27AE60','#C47436','#C0392B','#2980B9']
 
   return (
     <Layout>
@@ -91,7 +105,6 @@ export function Directorio() {
           <Btn onClick={abrirNuevo}><Plus size={14} /> Agregar contacto</Btn>
         </Topbar>
 
-        {/* Búsqueda */}
         <div style={{ marginBottom: 20 }}>
           <input
             placeholder="Buscar por nombre, rubro o rol..."
@@ -113,8 +126,17 @@ export function Directorio() {
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                           <Avatar iniciales={c.iniciales || c.nombre?.slice(0,2).toUpperCase()} color={c.color || '#425563'} size={36} />
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontWeight: 700, fontSize: 14, fontFamily: 'var(--font-title)', marginBottom: 2 }}>{c.nombre}</p>
-                            {c.rubro && <p style={{ fontSize: 12, color: '#888', marginBottom: 6 }}>{c.rubro}</p>}
+                            <p style={{ fontWeight: 700, fontSize: 14, fontFamily: 'var(--font-title)', marginBottom: 4 }}>{c.nombre}</p>
+
+                            {/* Rubros como chips */}
+                            {(c.rubros?.length > 0 || c.rubro) && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
+                                {(c.rubros?.length > 0 ? c.rubros : [c.rubro]).map(r => (
+                                  <span key={r} style={{ fontSize: 11, padding: '1px 8px', borderRadius: 20, background: 'rgba(66,85,99,0.08)', color: 'var(--nd-mid)', fontWeight: 500 }}>{r}</span>
+                                ))}
+                              </div>
+                            )}
+
                             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                               {c.telefono && (
                                 <a href={`https://wa.me/${c.telefono.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer"
@@ -139,9 +161,8 @@ export function Directorio() {
               ))
         }
 
-        {/* Modal */}
         {modal && (
-          <Modal title={modal === 'nuevo' ? 'Nuevo contacto' : 'Editar contacto'} onClose={() => setModal(null)} width={460}>
+          <Modal title={modal === 'nuevo' ? 'Nuevo contacto' : 'Editar contacto'} onClose={() => setModal(null)} width={480}>
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
               <Input label="Nombre completo" required placeholder="Juan Pérez" value={form.nombre || ''} onChange={e => {
                 const n = e.target.value
@@ -154,14 +175,47 @@ export function Directorio() {
               {ROLES_DIRECTORIO.map(r => <option key={r} value={r}>{r}</option>)}
             </Select>
 
+            {/* Rubros múltiples */}
             <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 5, fontWeight: 600 }}>Rubro / Contrato</label>
-              <input list="rubros-list" value={form.rubro || ''} onChange={e => setForm(f => ({ ...f, rubro: e.target.value }))}
-                placeholder="Ej: Hormigón, Mampostería..."
-                style={{ width: '100%', height: 36, padding: '0 10px', border: '0.5px solid var(--nd-border2)', borderRadius: 7, fontSize: 14, boxSizing: 'border-box' }} />
-              <datalist id="rubros-list">
-                {RUBROS.map(r => <option key={r.id} value={r.nombre} />)}
-              </datalist>
+              <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 5, fontWeight: 600 }}>
+                Rubros / Contratos
+                <span style={{ fontSize: 11, color: '#aaa', fontWeight: 400, marginLeft: 6 }}>puede tener varios</span>
+              </label>
+
+              {/* Chips de rubros agregados */}
+              {form.rubros?.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                  {form.rubros.map(r => (
+                    <span key={r} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, padding: '3px 10px', borderRadius: 20, background: 'rgba(66,85,99,0.1)', color: 'var(--nd-mid)', fontWeight: 500 }}>
+                      {r}
+                      <button onClick={() => quitarRubro(r)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#aaa', padding: 0, display: 'flex', alignItems: 'center', marginLeft: 2 }}>
+                        <X size={11} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Input + botón agregar */}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ flex: 1, position: 'relative' }}>
+                  <input
+                    list="rubros-list"
+                    value={rubroInput}
+                    onChange={e => setRubroInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); agregarRubro() } }}
+                    placeholder="Ej: Hormigón, Mampostería..."
+                    style={{ width: '100%', height: 36, padding: '0 10px', border: '0.5px solid var(--nd-border2)', borderRadius: 7, fontSize: 14, boxSizing: 'border-box' }}
+                  />
+                  <datalist id="rubros-list">
+                    {RUBROS.map(r => <option key={r.id} value={r.nombre} />)}
+                  </datalist>
+                </div>
+                <Btn variant="secondary" onClick={agregarRubro} style={{ flexShrink: 0 }}>
+                  + Agregar
+                </Btn>
+              </div>
+              <p style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>Enter o tocá "Agregar" para sumar cada rubro. Podés escribir o elegir de la lista.</p>
             </div>
 
             <Input label="Teléfono (WhatsApp)" type="tel" placeholder="5491112345678" value={form.telefono || ''} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} />
@@ -173,7 +227,6 @@ export function Directorio() {
                 style={{ width: '100%', height: 36, padding: '0 10px', border: '0.5px solid var(--nd-border2)', borderRadius: 7, fontSize: 14, boxSizing: 'border-box' }} />
             </div>
 
-            {/* Color */}
             <div style={{ marginBottom: 16 }}>
               <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 8, fontWeight: 600 }}>Color de avatar</label>
               <div style={{ display: 'flex', gap: 8 }}>

@@ -1,37 +1,43 @@
 import React, { useState } from 'react'
-import { Plus, Edit2, Trash2, Users, ExternalLink, Copy, Check } from 'lucide-react'
+import { Plus, Edit2, Trash2, Users, ExternalLink, Copy, Check, Eye, EyeOff } from 'lucide-react'
 import { useStore } from '../../store/useStore'
-import { Layout, PageWrap, Topbar, Card, CardTitle, Btn, Input, Select, Modal, EmptyState, Avatar, RolBadge, Badge } from '../../components'
+import { Layout, PageWrap, Topbar, Card, Btn, Input, Select, Modal, EmptyState, Avatar, RolBadge, Badge } from '../../components'
 import { ROLES } from '../../data/mock'
 
 const COLORES = ['#425563','#5B9BD5','#8E44AD','#27AE60','#C47436','#C0392B','#2980B9','#F39C12']
 
 export function Usuarios() {
   const { usuarios, agregarUsuario, actualizarUsuario, eliminarUsuario } = useStore()
-  const [modal,   setModal]   = useState(null)
-  const [form,    setForm]    = useState({})
-  const [pass,    setPass]    = useState('')
-  const [saving,  setSaving]  = useState(false)
-  const [error,   setError]   = useState('')
-  const [copiado, setCopiado] = useState(false)
-
-  const passGen = () => {
-    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
-    return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
-  }
+  const [modal,    setModal]    = useState(null)
+  const [form,     setForm]     = useState({})
+  const [pass,     setPass]     = useState('')
+  const [showPass, setShowPass] = useState(false)
+  const [saving,   setSaving]   = useState(false)
+  const [error,    setError]    = useState('')
+  const [copiado,  setCopiado]  = useState(false)
 
   const abrirNuevo = () => {
-    const p = passGen()
     setForm({ nombre: '', iniciales: '', email: '', rol: 'lider', color: '#425563', telefono: '', activo: true })
-    setPass(p)
+    setPass('')
+    setShowPass(true)
     setModal('nuevo')
     setError('')
   }
 
-  const abrirEditar = (u) => { setForm({ ...u }); setPass(''); setModal(u); setError('') }
+  const abrirEditar = (u) => {
+    setForm({ ...u })
+    setPass('')
+    setShowPass(false)
+    setModal(u)
+    setError('')
+  }
 
   const copiarPass = () => {
-    navigator.clipboard.writeText(pass).then(() => { setCopiado(true); setTimeout(() => setCopiado(false), 2000) })
+    if (!pass) return
+    navigator.clipboard.writeText(pass).then(() => {
+      setCopiado(true)
+      setTimeout(() => setCopiado(false), 2000)
+    })
   }
 
   const guardar = async () => {
@@ -40,11 +46,8 @@ export function Usuarios() {
     if (!form.iniciales) form.iniciales = form.nombre.split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase()
     setSaving(true)
     try {
-      if (modal === 'nuevo') {
-        await agregarUsuario(form)
-      } else {
-        await actualizarUsuario(modal.id, form)
-      }
+      if (modal === 'nuevo') await agregarUsuario(form)
+      else await actualizarUsuario(modal.id, form)
       setModal(null)
     } catch (e) { setError('Error: ' + e.message) }
     finally { setSaving(false) }
@@ -62,7 +65,6 @@ export function Usuarios() {
           <Btn onClick={abrirNuevo}><Plus size={14} /> Nuevo usuario</Btn>
         </Topbar>
 
-        {/* Aviso Firebase Auth */}
         <div style={{ marginBottom: 16, padding: '12px 16px', background: '#fef3c7', borderRadius: 8, fontSize: 13, color: '#92400e', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <span>Para que un usuario pueda entrar también necesita cuenta en Firebase Authentication.</span>
           <a href="https://console.firebase.google.com/project/ndtracker-14d4c/authentication/users" target="_blank" rel="noopener noreferrer">
@@ -117,18 +119,17 @@ export function Usuarios() {
           Los operarios y referentes no necesitan cuenta. Acceden sin login — su nombre queda guardado en el dispositivo y todas las acciones quedan trazadas con device ID.
         </div>
 
-        {/* Modal */}
         {modal && (
           <Modal title={modal === 'nuevo' ? 'Nuevo usuario' : 'Editar usuario'} onClose={() => setModal(null)} width={480}>
 
-            {/* Pasos para nuevo usuario */}
             {modal === 'nuevo' && (
               <div style={{ marginBottom: 20, padding: '14px 16px', background: '#f0f9ff', borderRadius: 8, border: '0.5px solid #bae6fd' }}>
                 <p style={{ fontSize: 12, fontWeight: 700, color: '#0369a1', marginBottom: 8 }}>Pasos para crear el acceso completo:</p>
                 <div style={{ fontSize: 12, color: '#0369a1', lineHeight: 1.8 }}>
-                  <p>1. Completá los datos acá abajo y guardá</p>
-                  <p>2. En Firebase Auth creá la cuenta con el mismo email</p>
-                  <p>3. Mandále el email y la contraseña generada por WhatsApp</p>
+                  <p>1. Completá los datos y escribí la contraseña que quieras usar</p>
+                  <p>2. Copiala y guardala</p>
+                  <p>3. Creá la cuenta en Firebase Auth con el mismo email y esa contraseña</p>
+                  <p>4. Mandále el email y contraseña al usuario por WhatsApp</p>
                 </div>
               </div>
             )}
@@ -150,26 +151,40 @@ export function Usuarios() {
               ))}
             </Select>
 
-            {/* Contraseña generada — solo en nuevo */}
+            {/* Contraseña editable — solo en nuevo */}
             {modal === 'nuevo' && (
               <div style={{ marginBottom: 14 }}>
                 <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 5, fontWeight: 600 }}>
-                  Contraseña sugerida
-                  <span style={{ fontSize: 11, color: '#aaa', fontWeight: 400, marginLeft: 6 }}>generada automáticamente</span>
+                  Contraseña para Firebase Auth
                 </label>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <div style={{ flex: 1, height: 36, padding: '0 12px', border: '0.5px solid var(--nd-border2)', borderRadius: 7, fontSize: 14, display: 'flex', alignItems: 'center', fontFamily: 'monospace', background: '#f9f9f9', color: '#333' }}>
-                    {pass}
+                  <div style={{ flex: 1, position: 'relative' }}>
+                    <input
+                      type={showPass ? 'text' : 'password'}
+                      placeholder="Escribí la contraseña..."
+                      value={pass}
+                      onChange={e => { setPass(e.target.value); setCopiado(false) }}
+                      style={{ width: '100%', height: 36, padding: '0 36px 0 10px', border: '0.5px solid var(--nd-border2)', borderRadius: 7, fontSize: 14, boxSizing: 'border-box', fontFamily: 'var(--font-body)' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPass(s => !s)}
+                      style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#aaa', padding: 2, display: 'flex', alignItems: 'center' }}
+                    >
+                      {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
                   </div>
-                  <Btn variant="secondary" onClick={copiarPass} style={{ flexShrink: 0 }}>
+                  <Btn
+                    variant={copiado ? 'green' : 'secondary'}
+                    onClick={copiarPass}
+                    disabled={!pass}
+                    style={{ flexShrink: 0 }}
+                  >
                     {copiado ? <><Check size={13} /> Copiado</> : <><Copy size={13} /> Copiar</>}
-                  </Btn>
-                  <Btn variant="secondary" onClick={() => setPass(passGen())} style={{ flexShrink: 0 }}>
-                    Nueva
                   </Btn>
                 </div>
                 <p style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>
-                  Usá esta contraseña cuando creés la cuenta en Firebase Auth. Después mandásela al usuario.
+                  Mínimo 6 caracteres. Usá esta contraseña exacta cuando creés la cuenta en Firebase Auth.
                 </p>
               </div>
             )}
