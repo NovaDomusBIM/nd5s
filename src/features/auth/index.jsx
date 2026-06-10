@@ -11,14 +11,14 @@ export function Login() {
   const [loading,  setLoading]  = useState(false)
   const [showPass, setShowPass] = useState(false)
 
-  // Cuando initAuth termina de resolver el usuario, redirige
+  // Redirigir apenas usuarioActual esté disponible — sin importar cargando
   useEffect(() => {
-    if (!cargando && usuarioActual) {
+    if (usuarioActual) {
       navigate('/dashboard', { replace: true })
     }
-  }, [cargando, usuarioActual])
+  }, [usuarioActual])
 
-  // Mostrar pantalla de carga mientras initAuth trabaja
+  // Pantalla de carga
   if (cargando) return (
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--nd-bg)' }}>
       <div style={{ textAlign: 'center' }}>
