@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore'
 
 export function Login() {
-  const { login, usuarioActual, cargando } = useStore()
+  const { login } = useStore()
   const navigate   = useNavigate()
   const [email,    setEmail]    = useState('')
   const [pass,     setPass]     = useState('')
@@ -11,26 +11,7 @@ export function Login() {
   const [loading,  setLoading]  = useState(false)
   const [showPass, setShowPass] = useState(false)
 
-  // Redirigir apenas usuarioActual esté disponible — sin importar cargando
-  useEffect(() => {
-    if (usuarioActual) {
-      navigate('/dashboard', { replace: true })
-    }
-  }, [usuarioActual])
-
-  // Pantalla de carga
-  if (cargando) return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--nd-bg)' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontFamily: 'var(--font-title)', fontSize: 18, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 16 }}>
-          <span style={{ color: 'var(--nd-black)' }}>ND</span>
-          <span style={{ color: 'var(--nd-mid)' }}>TRACKER</span>
-          <span style={{ color: 'var(--nd-mid)' }}> 5S</span>
-        </div>
-        <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--nd-mid)20', borderTopColor: 'var(--nd-mid)', animation: 'spin .7s linear infinite', margin: '0 auto' }} />
-      </div>
-    </div>
-  )
+  // Redirect manejado por LoginRoute en App.jsx
 
   const handleLogin = async () => {
     if (!email || !pass) { setError('Completá los campos'); return }
