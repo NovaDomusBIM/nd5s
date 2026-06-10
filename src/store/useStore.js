@@ -84,8 +84,21 @@ export const useStore = create((set, get) => ({
   },
 
   login: async (email, pass) => {
-    await loginFirebase(email, pass)
-    // initAuth se dispara solo via onAuthStateChanged
+    const cred = await loginFirebase(email, pass)
+    // Setear inmediatamente igual que NDTracker — no esperar onAuthStateChanged
+    const basicUser = {
+      id:        cred.user.uid,
+      uid:       cred.user.uid,
+      nombre:    cred.user.displayName || email.split('@')[0],
+      iniciales: email.slice(0, 2).toUpperCase(),
+      email:     email,
+      rol:       'operario',
+      color:     '#425563',
+      anonimo:   false
+    }
+    set({ usuarioActual: basicUser, cargando: false })
+    get().initListeners()
+    // onAuthStateChanged va a actualizar el rol real desde Firestore en segundo plano
   },
 
   logout: async () => {
