@@ -1,9 +1,9 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { useNavigate, Navigate, useLocation } from 'react-router-dom'
 import { useStore } from '../../store/useStore'
 
 export function Login() {
-  const { login } = useStore()
+  const { login, usuarioActual, cargando } = useStore()
   const navigate   = useNavigate()
   const [email,    setEmail]    = useState('')
   const [pass,     setPass]     = useState('')
@@ -11,16 +11,23 @@ export function Login() {
   const [loading,  setLoading]  = useState(false)
   const [showPass, setShowPass] = useState(false)
 
-  // Redirect manejado por LoginRoute en App.jsx
+  // Navegar al dashboard cuando Firebase confirme el login — igual que NDTracker
+  useEffect(() => {
+    if (usuarioActual) navigate('/dashboard', { replace: true })
+  }, [usuarioActual])
+
+  if (cargando) return (
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-title)', color: '#aaa', fontSize: 13 }}>
+      Cargando...
+    </div>
+  )
 
   const handleLogin = async () => {
     if (!email || !pass) { setError('Completá los campos'); return }
     setLoading(true); setError('')
     try {
-      // login() solo hace signIn en Firebase Auth.
-      // onAuthStateChanged dispara initAuth() que resuelve el rol desde Firestore.
-      // El useEffect de arriba redirige cuando cargando pasa a false y hay usuarioActual.
       await login(email.trim(), pass)
+      // navegación via useEffect cuando usuarioActual se setea
     } catch {
       setError('Email o contraseña incorrectos')
       setLoading(false)
@@ -36,7 +43,6 @@ export function Login() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Panel izquierdo */}
       <div style={{ width: 240, background: 'var(--nd-dark)', display: 'flex', flexDirection: 'column', padding: '40px 24px', flexShrink: 0 }} className="login-panel">
         <style>{`@media (max-width: 600px) { .login-panel { display: none !important; } }`}</style>
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
@@ -58,10 +64,9 @@ export function Login() {
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.18)' }}>V1.7</div>
+        <div style={{ marginTop: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.18)' }}>V1.7.7</div>
       </div>
 
-      {/* Panel derecho */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--nd-bg)', padding: 16 }}>
         <div style={{ background: 'var(--nd-white)', border: '0.5px solid var(--nd-border)', borderRadius: 12, padding: '40px 36px', width: '100%', maxWidth: 340 }}>
           <h1 style={{ fontFamily: 'var(--font-title)', fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Iniciar sesión</h1>
@@ -96,7 +101,7 @@ export function Login() {
             cursor: loading ? 'wait' : 'pointer', marginTop: 12,
             fontFamily: 'var(--font-title)', letterSpacing: '0.06em', opacity: loading ? 0.7 : 1
           }}>
-            {loading ? 'Verificando...' : 'INGRESAR →'}
+            {loading ? 'Ingresando...' : 'INGRESAR →'}
           </button>
         </div>
       </div>
@@ -106,15 +111,13 @@ export function Login() {
 
 export function ProtectedRoute({ children, rolesPermitidos }) {
   const { usuarioActual, cargando } = useStore()
-
+  const location = useLocation()
   if (cargando) return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--nd-bg)' }}>
-      <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--nd-mid)20', borderTopColor: 'var(--nd-mid)', animation: 'spin .7s linear infinite' }} />
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-title)', color: '#aaa', fontSize: 13 }}>
+      Cargando...
     </div>
   )
-
   if (!usuarioActual) return <Navigate to="/login" replace />
   if (rolesPermitidos && !rolesPermitidos.includes(usuarioActual.rol)) return <Navigate to="/dashboard" replace />
-
   return children
 }

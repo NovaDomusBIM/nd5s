@@ -17,25 +17,13 @@ const P = ({ children, roles }) => (
   <ProtectedRoute rolesPermitidos={roles}>{children}</ProtectedRoute>
 )
 
-// Si hay usuario logueado y va a /login, mandarlo al dashboard
-function LoginRoute() {
-  const { usuarioActual, cargando } = useStore()
-  if (cargando) return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--nd-bg)' }}>
-      <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid rgba(66,85,99,0.2)', borderTopColor: 'var(--nd-mid)', animation: 'spin .7s linear infinite' }} />
-    </div>
-  )
-  if (usuarioActual) return <Navigate to="/dashboard" replace />
-  return <Login />
-}
-
 export default function App() {
   const { initAuth } = useStore()
   useEffect(() => { initAuth() }, [])
 
   return (
     <Routes>
-      <Route path="/login"        element={<LoginRoute />} />
+      <Route path="/login"        element={<Login />} />
       <Route path="/dashboard"    element={<P><Dashboard /></P>} />
       <Route path="/hallazgos"    element={<P><Hallazgos /></P>} />
       <Route path="/innecesarios" element={<P><Innecesarios /></P>} />
