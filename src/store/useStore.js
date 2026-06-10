@@ -20,6 +20,7 @@ export const setNombreGuardado = (n) => localStorage.setItem('nd5s_nombre', n)
 export const useStore = create((set, get) => ({
   usuarioActual:  null,
   cargando:       true,
+  rolResuelto:    false,
   proyectos:      [],
   proyectoActivo: null,
   usuarios:       [],
@@ -64,9 +65,10 @@ export const useStore = create((set, get) => ({
                 updateItem('usuarios', encontrado.id, { uid: firebaseUser.uid }).catch(() => {})
               }
               // Actualizar con rol real — esto dispara re-render con el rol correcto
-              set({ usuarioActual: { ...encontrado, uid: firebaseUser.uid }, usuarios })
+              set({ usuarioActual: { ...encontrado, uid: firebaseUser.uid }, usuarios, rolResuelto: true })
             }
-            // Cargar proyectos
+            if (!encontrado) set({ rolResuelto: true })  // fallback operario confirmado
+          // Cargar proyectos
             const proyectos = await getCol('proyectos')
             const proyectoActivo = proyectos.find(p => p.estado === 'activo') || proyectos[0] || null
             set({ proyectos, proyectoActivo })
@@ -77,28 +79,15 @@ export const useStore = create((set, get) => ({
         }
       } else {
         get()._unsubs.forEach(u => typeof u === 'function' && u())
-        set({ usuarioActual: null, cargando: false, hallazgos: [], innecesarios: [], _unsubs: [] })
+        set({ usuarioActual: null, cargando: false, rolResuelto: false, hallazgos: [], innecesarios: [], _unsubs: [] })
       }
     })
     set(s => ({ _unsubs: [...s._unsubs, unsub] }))
   },
 
   login: async (email, pass) => {
-    const cred = await loginFirebase(email, pass)
-    // Setear inmediatamente igual que NDTracker — no esperar onAuthStateChanged
-    const basicUser = {
-      id:        cred.user.uid,
-      uid:       cred.user.uid,
-      nombre:    cred.user.displayName || email.split('@')[0],
-      iniciales: email.slice(0, 2).toUpperCase(),
-      email:     email,
-      rol:       'operario',
-      color:     '#425563',
-      anonimo:   false
-    }
-    set({ usuarioActual: basicUser, cargando: false })
-    get().initListeners()
-    // onAuthStateChanged va a actualizar el rol real desde Firestore en segundo plano
+    // Solo hacer signIn — onAuthStateChanged resuelve el rol y setea usuarioActual
+    await loginFirebase(email, pass)
   },
 
   logout: async () => {

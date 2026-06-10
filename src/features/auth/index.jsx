@@ -3,7 +3,7 @@ import { useNavigate, Navigate, useLocation } from 'react-router-dom'
 import { useStore } from '../../store/useStore'
 
 export function Login() {
-  const { login, usuarioActual, cargando } = useStore()
+  const { login, usuarioActual, cargando, rolResuelto } = useStore()
   const navigate   = useNavigate()
   const [email,    setEmail]    = useState('')
   const [pass,     setPass]     = useState('')
@@ -11,10 +11,10 @@ export function Login() {
   const [loading,  setLoading]  = useState(false)
   const [showPass, setShowPass] = useState(false)
 
-  // Navegar al dashboard cuando Firebase confirme el login — igual que NDTracker
+  // Navegar solo cuando Firestore confirmó el rol real
   useEffect(() => {
-    if (usuarioActual) navigate('/dashboard', { replace: true })
-  }, [usuarioActual])
+    if (usuarioActual && rolResuelto) navigate('/dashboard', { replace: true })
+  }, [usuarioActual, rolResuelto])
 
   if (cargando) return (
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-title)', color: '#aaa', fontSize: 13 }}>
