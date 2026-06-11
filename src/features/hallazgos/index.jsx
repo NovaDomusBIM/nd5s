@@ -364,7 +364,7 @@ function ModalDetalle({ hallazgo, onClose }) {
           {confirmEliminar ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fef2f2', borderRadius: 8, padding: '10px 14px' }}>
               <span style={{ fontSize: 12, color: '#b91c1c', flex: 1 }}>¿Eliminar permanentemente?</span>
-              <Btn variant=\"secondary\" style={{ height: 28, fontSize: 12 }} onClick={() => setConfirmEliminar(false)} disabled={saving}>Cancelar</Btn>
+              <Btn variant="secondary" style={{ height: 28, fontSize: 12 }} onClick={() => setConfirmEliminar(false)} disabled={saving}>Cancelar</Btn>
               <Btn style={{ height: 28, fontSize: 12, background: '#dc2626', color: '#fff', border: 'none' }} onClick={handleEliminar} disabled={saving}>
                 {saving ? 'Eliminando...' : 'Eliminar'}
               </Btn>
