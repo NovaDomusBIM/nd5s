@@ -27,7 +27,8 @@ export function Login() {
     setLoading(true); setError('')
     try {
       await login(email.trim(), pass)
-      // navegación via useEffect cuando usuarioActual se setea
+      // Navegar directo sin esperar useEffect
+      navigate('/dashboard', { replace: true })
     } catch {
       setError('Email o contraseña incorrectos')
       setLoading(false)
