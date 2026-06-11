@@ -45,8 +45,8 @@ export const useStore = create((set, get) => ({
         }
         set({ usuarioActual: basicUser, cargando: false })
 
-        // PASO 2: cargar el rol real de Firestore en segundo plano
-        if (!firebaseUser.isAnonymous) {
+        // PASO 2: cargar el rol real de Firestore — solo si no fue resuelto ya por login()
+        if (!firebaseUser.isAnonymous && !get().rolResuelto) {
           try {
             let usuarios = await getCol('usuarios')
             if (!usuarios.length) {
@@ -86,8 +86,42 @@ export const useStore = create((set, get) => ({
   },
 
   login: async (email, pass) => {
-    // Solo hacer signIn — onAuthStateChanged resuelve el rol y setea usuarioActual
-    await loginFirebase(email, pass)
+    // signIn + resolver rol real antes de retornar, para que navigate ocurra con rol correcto
+    const cred = await loginFirebase(email, pass)
+    const firebaseUser = cred.user
+    try {
+      let usuarios = await getCol('usuarios')
+      if (!usuarios.length) {
+        await seedIfEmpty(PROYECTOS_SEED, USUARIOS_SEED)
+        usuarios = await getCol('usuarios')
+      }
+      let encontrado = usuarios.find(x => x.uid === firebaseUser.uid)
+      if (!encontrado) {
+        const emailNorm = firebaseUser.email?.toLowerCase().trim()
+        encontrado = usuarios.find(x => x.email?.toLowerCase().trim() === emailNorm)
+      }
+      if (encontrado) {
+        if (!encontrado.uid) {
+          updateItem('usuarios', encontrado.id, { uid: firebaseUser.uid }).catch(() => {})
+        }
+        const proyectos = await getCol('proyectos')
+        const proyectoActivo = proyectos.find(p => p.estado === 'activo') || proyectos[0] || null
+        set({
+          usuarioActual: { ...encontrado, uid: firebaseUser.uid },
+          usuarios,
+          proyectos,
+          proyectoActivo,
+          cargando: false,
+          rolResuelto: true
+        })
+        get()._iniciarListeners(proyectoActivo)
+      } else {
+        set({ cargando: false, rolResuelto: true })
+      }
+    } catch (e) {
+      console.error('login Firestore error:', e)
+      set({ cargando: false, rolResuelto: true })
+    }
   },
 
   logout: async () => {
