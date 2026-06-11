@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react'
-import { AlertTriangle, Plus, Camera, X, Filter, ChevronDown, ExternalLink, CheckCircle, Clock, Phone } from 'lucide-react'
+import { AlertTriangle, Plus, Camera, X, Filter, ChevronDown, ExternalLink, CheckCircle, Clock, Phone, Trash2 } from 'lucide-react'
 import { useStore, getNombreGuardado, setNombreGuardado } from '../../store/useStore'
 import { subirFoto, comprimirImagen } from '../../services/firebase'
 import {
@@ -151,12 +151,14 @@ function FormNuevoHallazgo({ onClose, onGuardado }) {
 
 // ── Modal de detalle / gestión ───────────────────────────────────────────────
 function ModalDetalle({ hallazgo, onClose }) {
-  const { usuarioActual, actualizarHallazgo, cerrarHallazgo, proyectoActivo, usuarios } = useStore()
+  const { usuarioActual, actualizarHallazgo, cerrarHallazgo, eliminarHallazgo, proyectoActivo, usuarios } = useStore()
   const rol = usuarioActual?.rol
+  const esAdmin = rol === 'admin'
   const [editando, setEditando]     = useState(false)
   const [form,     setForm]         = useState({ ...hallazgo })
   const [resolucion, setResolucion] = useState('')
   const [cerrando, setCerrando]     = useState(false)
+  const [confirmEliminar, setConfirmEliminar] = useState(false)
   const [saving,   setSaving]       = useState(false)
   const [fotoRes,  setFotoRes]      = useState(null)
   const [fotoResPreview, setFotoResPreview] = useState(null)
@@ -202,7 +204,15 @@ function ModalDetalle({ hallazgo, onClose }) {
     finally { setSaving(false) }
   }
 
-  // Link WhatsApp para notificar al responsable
+  const handleEliminar = async () => {
+    setSaving(true)
+    try {
+      await eliminarHallazgo(hallazgo.id)
+      onClose()
+    } catch (e) { alert('Error: ' + e.message) }
+    finally { setSaving(false) }
+  }
+
   const wlink = form.responsable
     ? (() => {
         const u = lideres.find(x => x.nombre === form.responsable)
@@ -345,6 +355,26 @@ function ModalDetalle({ hallazgo, onClose }) {
         <div style={{ background: '#d1fae5', borderRadius: 8, padding: '12px 14px' }}>
           <p style={{ fontSize: 12, fontWeight: 600, color: '#065f46', marginBottom: 4 }}>✓ Resuelto el {fmtFecha(hallazgo.cerradoEn)}</p>
           {hallazgo.resolucion && <p style={{ fontSize: 13, color: '#047857' }}>{hallazgo.resolucion}</p>}
+        </div>
+      )}
+
+      {/* Eliminar — solo admin */}
+      {esAdmin && (
+        <div style={{ borderTop: '0.5px solid var(--nd-border)', paddingTop: 14, marginTop: 16 }}>
+          {confirmEliminar ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fef2f2', borderRadius: 8, padding: '10px 14px' }}>
+              <span style={{ fontSize: 12, color: '#b91c1c', flex: 1 }}>¿Eliminar permanentemente?</span>
+              <Btn variant=\"secondary\" style={{ height: 28, fontSize: 12 }} onClick={() => setConfirmEliminar(false)} disabled={saving}>Cancelar</Btn>
+              <Btn style={{ height: 28, fontSize: 12, background: '#dc2626', color: '#fff', border: 'none' }} onClick={handleEliminar} disabled={saving}>
+                {saving ? 'Eliminando...' : 'Eliminar'}
+              </Btn>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmEliminar(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#aaa', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--font-body)' }}>
+              <Trash2 size={13} /> Eliminar hallazgo
+            </button>
+          )}
         </div>
       )}
     </Modal>

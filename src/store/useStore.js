@@ -229,6 +229,8 @@ export const useStore = create((set, get) => ({
 
   eliminarHallazgo: async (id) => { await deleteItem('hallazgos', id) },
 
+  eliminarInnecesario: async (id) => { await deleteItem('innecesarios', id) },
+
   agregarInnecesario: async (data) => {
     const { proyectoActivo, usuarioActual, deviceId } = get()
     const item = {
