@@ -13,14 +13,16 @@ import { Tablero } from '../features/tablero'
 import { Estadisticas } from '../features/estadisticas'
 import { Configuracion } from '../features/config'
 import { CargaPublica } from '../features/carga'
+import { LoadingScreen } from '../components/LoadingScreen'
 
 const P = ({ children, roles }) => (
   <ProtectedRoute rolesPermitidos={roles}>{children}</ProtectedRoute>
 )
 
 export default function App() {
-  const { initAuth } = useStore()
+  const { initAuth, cargando } = useStore()
   useEffect(() => { initAuth() }, [])
+  if (cargando) return <LoadingScreen />
 
   return (
     <Routes>

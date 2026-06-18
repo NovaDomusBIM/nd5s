@@ -54,8 +54,9 @@ export const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : ''
 export const truncar = (s, n = 60) => s && s.length > n ? s.slice(0, n) + '…' : (s || '')
 
 // ── Permisos por rol ─────────────────────────────────────────────────────────
-export const puedeAsignar  = (rol) => ['admin', 'direccion', 'lider'].includes(rol)
-export const puedeCerrar   = (rol) => ['admin', 'direccion', 'lider'].includes(rol)
-export const puedeExportar = (rol) => ['admin', 'direccion'].includes(rol)
+const ROLES_GESTION = ['admin', 'direccion', 'jefe_obra', 'lider', 'sh']
+export const puedeAsignar  = (rol) => ROLES_GESTION.includes(rol)
+export const puedeCerrar   = (rol) => ROLES_GESTION.includes(rol)
+export const puedeExportar = (rol) => ['admin', 'direccion', 'jefe_obra'].includes(rol)
 export const estaAdmin     = (rol) => rol === 'admin'
-export const esDireccion   = (rol) => ['admin', 'direccion'].includes(rol)
+export const esDireccion   = (rol) => ['admin', 'direccion', 'jefe_obra'].includes(rol)
