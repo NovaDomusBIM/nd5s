@@ -12,6 +12,7 @@ import { Directorio } from '../features/directorio'
 import { Tablero } from '../features/tablero'
 import { Estadisticas } from '../features/estadisticas'
 import { Configuracion } from '../features/config'
+import { CargaPublica } from '../features/carga'
 
 const P = ({ children, roles }) => (
   <ProtectedRoute rolesPermitidos={roles}>{children}</ProtectedRoute>
@@ -23,6 +24,7 @@ export default function App() {
 
   return (
     <Routes>
+      <Route path="/cargar"       element={<CargaPublica />} />
       <Route path="/login"        element={<Login />} />
       <Route path="/dashboard"    element={<P><Dashboard /></P>} />
       <Route path="/hallazgos"    element={<P><Hallazgos /></P>} />

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react'
-import { Package, Plus, Camera, X, CheckCircle, Trash2 } from 'lucide-react'
+import { Package, Plus, Camera, X, CheckCircle } from 'lucide-react'
 import { useStore, getNombreGuardado, setNombreGuardado } from '../../store/useStore'
 import { subirFoto, comprimirImagen } from '../../services/firebase'
 import { updateItem } from '../../services/firebase'
@@ -122,16 +122,14 @@ function FormNuevo({ onClose }) {
 
 // ── Modal detalle innecesario ─────────────────────────────────────────────────
 function ModalDetalle({ item, onClose }) {
-  const { actualizarInnecesario, eliminarInnecesario, usuarioActual, usuarios } = useStore()
+  const { actualizarInnecesario, usuarioActual, usuarios } = useStore()
   const rol = usuarioActual?.rol
-  const esAdmin = rol === 'admin'
   const puedeGestionar = ['admin','direccion','lider'].includes(rol)
   const [editando, setEditando] = useState(false)
   const [form, setForm]         = useState({ ...item })
   const [saving, setSaving]     = useState(false)
   const [cerrando, setCerrando] = useState(false)
   const [obs, setObs]           = useState('')
-  const [confirmEliminar, setConfirmEliminar] = useState(false)
 
   const lideres = usuarios.filter(u => ['admin','direccion','lider'].includes(u.rol) && u.activo !== false)
   const est = ESTADOS[item.estado] || ESTADOS.pendiente
@@ -158,15 +156,6 @@ function ModalDetalle({ item, onClose }) {
         observacionCierre: obs.trim(),
         cerradoEn: new Date().toISOString()
       })
-      onClose()
-    } catch (e) { alert('Error: ' + e.message) }
-    finally { setSaving(false) }
-  }
-
-  const handleEliminar = async () => {
-    setSaving(true)
-    try {
-      await eliminarInnecesario(item.id)
       onClose()
     } catch (e) { alert('Error: ' + e.message) }
     finally { setSaving(false) }
@@ -270,26 +259,6 @@ function ModalDetalle({ item, onClose }) {
         <div style={{ background: '#d1fae5', borderRadius: 8, padding: '12px 14px' }}>
           <p style={{ fontSize: 12, fontWeight: 600, color: '#065f46', marginBottom: item.observacionCierre ? 4 : 0 }}>✓ Cerrado el {fmtFecha(item.cerradoEn)}</p>
           {item.observacionCierre && <p style={{ fontSize: 13, color: '#047857' }}>{item.observacionCierre}</p>}
-        </div>
-      )}
-
-      {/* Eliminar — solo admin */}
-      {esAdmin && (
-        <div style={{ borderTop: '0.5px solid var(--nd-border)', paddingTop: 14, marginTop: 16 }}>
-          {confirmEliminar ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fef2f2', borderRadius: 8, padding: '10px 14px' }}>
-              <span style={{ fontSize: 12, color: '#b91c1c', flex: 1 }}>¿Eliminar permanentemente?</span>
-              <Btn variant="secondary" style={{ height: 28, fontSize: 12 }} onClick={() => setConfirmEliminar(false)} disabled={saving}>Cancelar</Btn>
-              <Btn style={{ height: 28, fontSize: 12, background: '#dc2626', color: '#fff', border: 'none' }} onClick={handleEliminar} disabled={saving}>
-                {saving ? 'Eliminando...' : 'Eliminar'}
-              </Btn>
-            </div>
-          ) : (
-            <button onClick={() => setConfirmEliminar(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#aaa', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--font-body)' }}>
-              <Trash2 size={13} /> Eliminar innecesario
-            </button>
-          )}
         </div>
       )}
     </Modal>
