@@ -22,6 +22,10 @@ export function Estadisticas() {
 
   const filtrado = useMemo(() => {
     if (rango === 'todos') return hProyecto
+    const ahora = new Date()
+    if (rango === 'mes_actual')   return hProyecto.filter(h => h.creadoEn?.slice(0,7) === ahora.toISOString().slice(0,7))
+    if (rango === 'mes_anterior') { const m = new Date(ahora); m.setMonth(m.getMonth()-1); return hProyecto.filter(h => h.creadoEn?.slice(0,7) === m.toISOString().slice(0,7)) }
+    if (rango === 'anio')         return hProyecto.filter(h => h.creadoEn?.slice(0,4) === ahora.toISOString().slice(0,4))
     const corte = new Date()
     if (rango === '30d')  corte.setDate(corte.getDate() - 30)
     if (rango === '90d')  corte.setDate(corte.getDate() - 90)
@@ -222,9 +226,12 @@ export function Estadisticas() {
           <select value={rango} onChange={e => setRango(e.target.value)}
             style={{ height: 34, padding: '0 10px', border: '0.5px solid var(--nd-border2)', borderRadius: 7, fontSize: 13, fontFamily: 'var(--font-body)', background: 'var(--nd-white)', cursor: 'pointer' }}>
             <option value="todos">Todo el historial</option>
+            <option value="mes_actual">Este mes</option>
+            <option value="mes_anterior">Mes pasado</option>
             <option value="30d">Últimos 30 días</option>
             <option value="90d">Últimos 90 días</option>
             <option value="180d">Últimos 180 días</option>
+            <option value="anio">Este año</option>
           </select>
           <Btn variant="secondary" onClick={exportarExcel}><Download size={14} /> Excel</Btn>
           <Btn variant="secondary" onClick={exportarPDF}><FileText size={14} /> PDF</Btn>

@@ -66,7 +66,7 @@ function SidebarContent({ onNavClick }) {
       <NavItem to="/hallazgos"   icon={AlertTriangle}  label="Hallazgos"    onClick={onNavClick} />
       {esLider && <NavItem to="/innecesarios" icon={Package} label="Innecesarios" onClick={onNavClick} />}
 
-      {esJefeOSuperior && <>
+      {esLider && <>
         <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '14px 0 6px 10px', fontFamily: 'var(--font-title)' }}>Gestión</p>
         <NavItem to="/tablero"      icon={LayoutDashboard} label="Tablero 5S"    onClick={onNavClick} />
         <NavItem to="/directorio"   icon={Users}           label="Directorio"    onClick={onNavClick} />

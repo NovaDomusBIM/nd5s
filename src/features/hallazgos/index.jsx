@@ -166,8 +166,8 @@ function ModalDetalle({ hallazgo, onClose }) {
   const { directorio } = useStore()
   // Responsables = personas del directorio + usuarios con rol de gestión
   const lideres = [
-    ...directorio.filter(d => d.proyectoId === proyectoActivo?.id).map(d => ({ id: d.id, nombre: d.nombre, info: d.rubros?.join(', ') || d.rol || '' })),
-    ...usuarios.filter(u => ['admin','direccion','jefe_obra','lider','sh'].includes(u.rol) && u.activo !== false && !directorio.find(d => d.nombre === u.nombre)).map(u => ({ id: u.id, nombre: u.nombre, info: u.rol }))
+    ...directorio.filter(d => d.proyectoId === proyectoActivo?.id).map(d => ({ id: d.id, nombre: d.nombre, rolLabel: d.rol || '' })),
+    ...usuarios.filter(u => ['admin','direccion','jefe_obra','lider','sh'].includes(u.rol) && u.activo !== false && !directorio.find(d => d.nombre === u.nombre)).map(u => ({ id: u.id, nombre: u.nombre, rolLabel: u.rol }))
   ]
 
   const handleFotoRes = async (e) => {

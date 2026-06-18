@@ -69,6 +69,12 @@ function FormAuditoria({ onClose, proyectoActivo, usuarioActual }) {
 
   return (
     <div>
+      {/* Ayuda con ejemplo */}
+      <div style={{ marginBottom: 18, padding: '12px 14px', background: '#f0f9ff', borderRadius: 8, border: '0.5px solid #bae6fd', fontSize: 12, color: '#0369a1', lineHeight: 1.6 }}>
+        <strong>Cómo puntuar:</strong> 0 = no cumple · 1 = muy bajo · 2 = regular · 3 = bueno · 4 = excelente.
+        <br/><span style={{ color: '#0c4a6e' }}>Ejemplo:</span> si en "3S Limpiar" el área tiene escombros acumulados → puntuás 1. Si está impecable → 4. El puntaje total se calcula solo.
+      </div>
+
       {/* Sector */}
       <div style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 5, fontWeight: 600 }}>
@@ -143,7 +149,8 @@ export function Tablero() {
   const { hallazgos, innecesarios, proyectoActivo, usuarioActual } = useStore()
   const [auditorias, setAuditorias] = useState([])
   const [modalAuditoria, setModalAuditoria] = useState(false)
-  const [mesVer, setMesVer] = useState(() => new Date().toISOString().slice(0, 7))
+  const [periodo, setPeriodo] = useState('mes_actual')  // mes_actual | mes_anterior | 3meses | 6meses | anio | todo
+  const mesVer = new Date().toISOString().slice(0, 7)
 
   // Cargar auditorías
   React.useEffect(() => {
@@ -160,7 +167,20 @@ export function Tablero() {
 
   // KPIs del mes seleccionado
   const kpis = useMemo(() => {
-    const delMes    = hProyecto.filter(h => h.creadoEn?.slice(0, 7) === mesVer)
+    // Filtrar por período seleccionado
+    const ahora = new Date()
+    const dentroDelPeriodo = (fecha) => {
+      if (!fecha) return false
+      if (periodo === 'todo') return true
+      const f = new Date(fecha)
+      if (periodo === 'mes_actual')   return fecha.slice(0,7) === ahora.toISOString().slice(0,7)
+      if (periodo === 'mes_anterior') { const m = new Date(ahora); m.setMonth(m.getMonth()-1); return fecha.slice(0,7) === m.toISOString().slice(0,7) }
+      if (periodo === '3meses')  { const c = new Date(ahora); c.setMonth(c.getMonth()-3); return f >= c }
+      if (periodo === '6meses')  { const c = new Date(ahora); c.setMonth(c.getMonth()-6); return f >= c }
+      if (periodo === 'anio')    return fecha.slice(0,4) === ahora.toISOString().slice(0,4)
+      return true
+    }
+    const delMes    = hProyecto.filter(h => dentroDelPeriodo(h.creadoEn))
     const vencidos  = hProyecto.filter(h => h.estado !== 'cerrado' && diasRestantes(h.fechaLimite) < 0)
     const total     = hProyecto.length
     const cerrados  = hProyecto.filter(h => h.estado === 'cerrado').length
@@ -169,7 +189,7 @@ export function Tablero() {
     const ultAudit  = [...auditorias].sort((a, b) => new Date(b.creadoEn) - new Date(a.creadoEn))[0]
 
     return { delMes: delMes.length, vencidos: vencidos.length, pctVenc, cerrados, total, innecPend, ultAudit }
-  }, [hProyecto, iProyecto, auditorias, mesVer])
+  }, [hProyecto, iProyecto, auditorias, periodo])
 
   // Tendencia mensual últimos 6 meses
   const tendencia = useMemo(() => {
@@ -213,13 +233,14 @@ export function Tablero() {
     <Layout>
       <PageWrap>
         <Topbar title="Tablero 5S" subtitle={proyectoActivo.nombre}>
-          <select value={mesVer} onChange={e => setMesVer(e.target.value)}
+          <select value={periodo} onChange={e => setPeriodo(e.target.value)}
             style={{ height: 34, padding: '0 10px', border: '0.5px solid var(--nd-border2)', borderRadius: 7, fontSize: 13, fontFamily: 'var(--font-body)', background: 'var(--nd-white)', cursor: 'pointer' }}>
-            {Array.from({ length: 6 }, (_, i) => {
-              const d = new Date(); d.setMonth(d.getMonth() - i)
-              const val = d.toISOString().slice(0, 7)
-              return <option key={val} value={val}>{d.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })}</option>
-            })}
+            <option value="mes_actual">Este mes</option>
+            <option value="mes_anterior">Mes pasado</option>
+            <option value="3meses">Últimos 3 meses</option>
+            <option value="6meses">Últimos 6 meses</option>
+            <option value="anio">Este año</option>
+            <option value="todo">Todo el historial</option>
           </select>
           <Btn onClick={() => setModalAuditoria(true)}>
             <ClipboardCheck size={14} /> Nueva auditoría
