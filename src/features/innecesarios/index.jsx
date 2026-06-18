@@ -122,9 +122,9 @@ function FormNuevo({ onClose }) {
 
 // ── Modal detalle innecesario ─────────────────────────────────────────────────
 function ModalDetalle({ item, onClose }) {
-  const { actualizarInnecesario, usuarioActual, usuarios } = useStore()
+  const { actualizarInnecesario, usuarioActual, usuarios, proyectoActivo } = useStore()
   const rol = usuarioActual?.rol
-  const puedeGestionar = ['admin','direccion','lider'].includes(rol)
+  const puedeGestionar = ['admin','direccion','jefe_obra','lider','sh'].includes(rol)
   const [editando, setEditando] = useState(false)
   const [form, setForm]         = useState({ ...item })
   const [saving, setSaving]     = useState(false)
@@ -205,10 +205,21 @@ function ModalDetalle({ item, onClose }) {
                 <option value="">Sin definir</option>
                 {DESTINOS_INNECESARIO.map(d => <option key={d} value={d}>{d}</option>)}
               </Select>
-              <Select label="Responsable" value={form.responsable || ''} onChange={e => setForm(f => ({ ...f, responsable: e.target.value }))}>
-                <option value="">Sin asignar</option>
-                {lideres.map((u,i) => <option key={u.id||i} value={u.nombre}>{u.nombre}</option>)}
-              </Select>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 5, fontWeight: 600 }}>Responsable</label>
+                <input
+                  list="lideres-innec-list"
+                  value={form.responsable || ''}
+                  onChange={e => setForm(f => ({ ...f, responsable: e.target.value }))}
+                  placeholder="Escribí el nombre..."
+                  style={{ width: '100%', height: 36, padding: '0 10px', border: '0.5px solid var(--nd-border2)', borderRadius: 7, fontSize: 14, boxSizing: 'border-box', fontFamily: 'var(--font-body)', background: 'var(--nd-white)' }}
+                />
+                <datalist id="lideres-innec-list">
+                  {lideres.sort((a,b) => a.nombre.localeCompare(b.nombre)).map((u,i) => (
+                    <option key={u.id||i} value={u.nombre} label={u.nombre + (u.info ? ' — ' + u.info : '')} />
+                  ))}
+                </datalist>
+              </div>
               <Input label="Fecha solución" type="date" value={form.fechaSolucion || ''} onChange={e => setForm(f => ({ ...f, fechaSolucion: e.target.value }))} />
               <div style={{ marginBottom: 14 }}>
                 <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 5, fontWeight: 600 }}>Observación</label>

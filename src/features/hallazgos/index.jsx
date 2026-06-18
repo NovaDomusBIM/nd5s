@@ -264,10 +264,22 @@ function ModalDetalle({ hallazgo, onClose }) {
                 <option value="en_proceso">En proceso</option>
               </Select>
 
-              <Select label="Responsable" value={form.responsable || ''} onChange={e => setForm(f => ({ ...f, responsable: e.target.value }))}>
-                <option value="">Sin asignar</option>
-                {lideres.map((u,i) => <option key={u.id||i} value={u.nombre}>{u.nombre}</option>)}
-              </Select>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 5, fontWeight: 600 }}>Responsable</label>
+                <input
+                  list="lideres-list"
+                  value={form.responsable || ''}
+                  onChange={e => setForm(f => ({ ...f, responsable: e.target.value }))}
+                  placeholder="Escribí el nombre..."
+                  style={{ width: '100%', height: 36, padding: '0 10px', border: '0.5px solid var(--nd-border2)', borderRadius: 7, fontSize: 14, boxSizing: 'border-box', fontFamily: 'var(--font-body)', background: 'var(--nd-white)' }}
+                />
+                <datalist id="lideres-list">
+                  <option value="">Sin asignar</option>
+                  {lideres.sort((a,b) => a.nombre.localeCompare(b.nombre)).map((u,i) => (
+                    <option key={u.id||i} value={u.nombre} label={u.nombre + (u.info ? ' — ' + u.info : '')} />
+                  ))}
+                </datalist>
+              </div>
 
               <Input label="Fecha límite" type="date" value={form.fechaLimite || ''} onChange={e => setForm(f => ({ ...f, fechaLimite: e.target.value }))} />
 

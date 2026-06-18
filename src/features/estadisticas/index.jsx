@@ -268,11 +268,11 @@ export function Estadisticas() {
               ? <EmptyState icon={BarChart2} title="Sin datos" sub="" />
               : <ResponsiveContainer width="100%" height={200}>
                   <PieChart>
-                    <Pie data={pieEstados} cx="50%" cy="50%" innerRadius={50} outerRadius={75} dataKey="value" label={({ name, percent }) => `${Math.round(percent * 100)}%`} labelLine={false}>
+                    <Pie data={pieEstados} cx="50%" cy="45%" innerRadius={46} outerRadius={70} dataKey="value" label={false} labelLine={false}>
                       {pieEstados.map((d, i) => <Cell key={i} fill={d.color} />)}
                     </Pie>
-                    <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '0.5px solid #e5e7eb' }} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} formatter={(value, entry) => `${value} (${Math.round(entry.payload.percent*100)}%)`} />
+                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '0.5px solid #e5e7eb' }} formatter={(v, n) => [v, n]} />
                   </PieChart>
                 </ResponsiveContainer>
             }
