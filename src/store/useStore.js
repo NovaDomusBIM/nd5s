@@ -26,6 +26,7 @@ export const useStore = create((set, get) => ({
   usuarios:       [],
   hallazgos:      [],
   innecesarios:   [],
+  directorio:     [],
   _unsubs:        [],
   deviceId:       getDeviceId(),
 
@@ -93,8 +94,21 @@ export const useStore = create((set, get) => ({
   },
 
   login: async (email, pass) => {
-    // Solo hacer signIn — onAuthStateChanged resuelve el rol y setea usuarioActual
-    await loginFirebase(email, pass)
+    const cred = await loginFirebase(email, pass)
+    // Igual que NDTracker: setear usuario INMEDIATAMENTE
+    // initAuth actualiza el rol real desde Firestore en segundo plano
+    const basicUser = {
+      id:        cred.user.uid,
+      uid:       cred.user.uid,
+      nombre:    cred.user.displayName || email.split('@')[0],
+      iniciales: email.slice(0, 2).toUpperCase(),
+      email:     email,
+      rol:       'operario',
+      color:     '#425563',
+      anonimo:   false
+    }
+    set({ usuarioActual: basicUser, cargando: false })
+    get().initListeners()
   },
 
   logout: async () => {
@@ -108,7 +122,8 @@ export const useStore = create((set, get) => ({
     if (!proyectoActivo) return
     const u1 = listenCol('hallazgos',    h => set({ hallazgos: h }))
     const u2 = listenCol('innecesarios', i => set({ innecesarios: i }))
-    set(s => ({ _unsubs: [...s._unsubs, u1, u2] }))
+    const u3 = listenCol('directorio',   d => set({ directorio: d }))
+    set(s => ({ _unsubs: [...s._unsubs, u1, u2, u3] }))
   },
 
   initListeners: async () => {

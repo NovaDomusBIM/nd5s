@@ -3,32 +3,27 @@ import { useNavigate, Navigate, useLocation } from 'react-router-dom'
 import { useStore } from '../../store/useStore'
 
 export function Login() {
-  const { login, usuarioActual, cargando, rolResuelto } = useStore()
-  const navigate   = useNavigate()
+  const { login, usuarioActual, cargando } = useStore()
+  const navigate = useNavigate()
   const [email,    setEmail]    = useState('')
   const [pass,     setPass]     = useState('')
   const [error,    setError]    = useState('')
   const [loading,  setLoading]  = useState(false)
   const [showPass, setShowPass] = useState(false)
 
-  // Navegar solo cuando Firestore confirmó el rol real
+  // Igual que NDTracker — navegar cuando usuarioActual se setea
   useEffect(() => {
-    if (usuarioActual && rolResuelto) navigate('/dashboard', { replace: true })
-  }, [usuarioActual, rolResuelto])
+    if (usuarioActual) navigate('/dashboard', { replace: true })
+  }, [usuarioActual])
 
-  if (cargando) return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-title)', color: '#aaa', fontSize: 13 }}>
-      Cargando...
-    </div>
-  )
+  if (cargando) return null // LoadingScreen lo maneja App.jsx
 
   const handleLogin = async () => {
     if (!email || !pass) { setError('Completá los campos'); return }
     setLoading(true); setError('')
     try {
       await login(email.trim(), pass)
-      // Navegar directo sin esperar useEffect
-      navigate('/dashboard', { replace: true })
+      // navegación via useEffect — igual que NDTracker
     } catch {
       setError('Email o contraseña incorrectos')
       setLoading(false)
@@ -65,7 +60,7 @@ export function Login() {
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.18)' }}>V1.8.2</div>
+        <div style={{ marginTop: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.18)' }}>V1.8.3</div>
       </div>
 
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--nd-bg)', padding: 16 }}>
@@ -113,11 +108,7 @@ export function Login() {
 export function ProtectedRoute({ children, rolesPermitidos }) {
   const { usuarioActual, cargando } = useStore()
   const location = useLocation()
-  if (cargando) return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-title)', color: '#aaa', fontSize: 13 }}>
-      Cargando...
-    </div>
-  )
+  if (cargando) return null // LoadingScreen lo maneja App.jsx
   if (!usuarioActual) return <Navigate to="/login" replace />
   if (rolesPermitidos && !rolesPermitidos.includes(usuarioActual.rol)) return <Navigate to="/dashboard" replace />
   return children

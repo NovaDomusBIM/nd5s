@@ -163,7 +163,12 @@ function ModalDetalle({ hallazgo, onClose }) {
   const fileResRef = useRef()
 
   const s = semaforo(hallazgo)
-  const lideres = usuarios.filter(u => ['admin','direccion','lider'].includes(u.rol) && u.activo !== false)
+  const { directorio } = useStore()
+  // Responsables = personas del directorio + usuarios con rol de gestión
+  const lideres = [
+    ...directorio.filter(d => d.proyectoId === proyectoActivo?.id).map(d => ({ id: d.id, nombre: d.nombre, info: d.rubros?.join(', ') || d.rol || '' })),
+    ...usuarios.filter(u => ['admin','direccion','jefe_obra','lider','sh'].includes(u.rol) && u.activo !== false && !directorio.find(d => d.nombre === u.nombre)).map(u => ({ id: u.id, nombre: u.nombre, info: u.rol }))
+  ]
 
   const handleFotoRes = async (e) => {
     const file = e.target.files?.[0]
@@ -258,7 +263,7 @@ function ModalDetalle({ hallazgo, onClose }) {
 
               <Select label="Responsable" value={form.responsable || ''} onChange={e => setForm(f => ({ ...f, responsable: e.target.value }))}>
                 <option value="">Sin asignar</option>
-                {lideres.map(u => <option key={u.id} value={u.nombre}>{u.nombre}</option>)}
+                {lideres.map((u,i) => <option key={u.id||i} value={u.nombre}>{u.nombre}{u.info ? ' — ' + u.info : ''}</option>)}
               </Select>
 
               <Input label="Fecha límite" type="date" value={form.fechaLimite || ''} onChange={e => setForm(f => ({ ...f, fechaLimite: e.target.value }))} />
