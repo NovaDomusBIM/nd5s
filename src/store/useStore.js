@@ -95,20 +95,33 @@ export const useStore = create((set, get) => ({
 
   login: async (email, pass) => {
     const cred = await loginFirebase(email, pass)
-    // Igual que NDTracker: setear usuario INMEDIATAMENTE
-    // initAuth actualiza el rol real desde Firestore en segundo plano
-    const basicUser = {
+    // Buscar el rol REAL en Firestore antes de setear — así nunca aparece como operario
+    let usuarios = await getCol('usuarios')
+    if (!usuarios.length) {
+      await seedIfEmpty(PROYECTOS_SEED, USUARIOS_SEED)
+      usuarios = await getCol('usuarios')
+    }
+    const emailNorm = email.toLowerCase().trim()
+    const encontrado = usuarios.find(x => x.uid === cred.user.uid) ||
+                       usuarios.find(x => x.email?.toLowerCase().trim() === emailNorm)
+    const usuario = encontrado || {
       id:        cred.user.uid,
       uid:       cred.user.uid,
-      nombre:    cred.user.displayName || email.split('@')[0],
+      nombre:    email.split('@')[0],
       iniciales: email.slice(0, 2).toUpperCase(),
       email:     email,
       rol:       'operario',
       color:     '#425563',
       anonimo:   false
     }
-    set({ usuarioActual: basicUser, cargando: false })
-    get().initListeners()
+    // Guardar uid si no estaba
+    if (encontrado && !encontrado.uid) {
+      updateItem('usuarios', encontrado.id, { uid: cred.user.uid }).catch(() => {})
+    }
+    const proyectos = await getCol('proyectos')
+    const proyectoActivo = proyectos.find(p => p.estado === 'activo') || proyectos[0] || null
+    set({ usuarioActual: { ...usuario, uid: cred.user.uid }, usuarios, proyectos, proyectoActivo, cargando: false })
+    get()._iniciarListeners(proyectoActivo)
   },
 
   logout: async () => {

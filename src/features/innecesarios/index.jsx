@@ -207,7 +207,7 @@ function ModalDetalle({ item, onClose }) {
               </Select>
               <Select label="Responsable" value={form.responsable || ''} onChange={e => setForm(f => ({ ...f, responsable: e.target.value }))}>
                 <option value="">Sin asignar</option>
-                {lideres.map((u,i) => <option key={u.id||i} value={u.nombre}>{u.nombre}{u.info ? ' — ' + u.info : ''}</option>)}
+                {lideres.map((u,i) => <option key={u.id||i} value={u.nombre}>{u.nombre}</option>)}
               </Select>
               <Input label="Fecha solución" type="date" value={form.fechaSolucion || ''} onChange={e => setForm(f => ({ ...f, fechaSolucion: e.target.value }))} />
               <div style={{ marginBottom: 14 }}>

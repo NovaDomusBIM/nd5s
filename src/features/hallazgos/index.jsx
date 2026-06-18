@@ -210,8 +210,11 @@ function ModalDetalle({ hallazgo, onClose }) {
   // Link WhatsApp para notificar al responsable
   const wlink = form.responsable
     ? (() => {
-        const u = lideres.find(x => x.nombre === form.responsable)
-        return u?.telefono ? wappLink(u.telefono, { ...hallazgo, ...form }, proyectoActivo?.nombre || '') : null
+        // Buscar número en directorio primero, luego en usuarios
+        const enDir = directorio?.find(x => x.nombre === form.responsable)
+        const enUsr = lideres.find(x => x.nombre === form.responsable)
+        const tel = enDir?.telefono || enUsr?.telefono
+        return tel ? wappLink(tel, { ...hallazgo, ...form }, proyectoActivo?.nombre || '') : null
       })()
     : null
 
@@ -263,7 +266,7 @@ function ModalDetalle({ hallazgo, onClose }) {
 
               <Select label="Responsable" value={form.responsable || ''} onChange={e => setForm(f => ({ ...f, responsable: e.target.value }))}>
                 <option value="">Sin asignar</option>
-                {lideres.map((u,i) => <option key={u.id||i} value={u.nombre}>{u.nombre}{u.info ? ' — ' + u.info : ''}</option>)}
+                {lideres.map((u,i) => <option key={u.id||i} value={u.nombre}>{u.nombre}</option>)}
               </Select>
 
               <Input label="Fecha límite" type="date" value={form.fechaLimite || ''} onChange={e => setForm(f => ({ ...f, fechaLimite: e.target.value }))} />
