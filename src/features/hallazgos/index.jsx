@@ -6,7 +6,7 @@ import {
   Layout, PageWrap, Topbar, Card, CardTitle, Btn,
   Input, Textarea, Select, Modal, EmptyState, Avatar, Badge, Spinner
 } from '../../components'
-import { fmtFecha, fmtFechaHora, semaforo, wappLink, puedeAsignar, puedeCerrar, hoy, truncar } from '../../utils'
+import { fmtFecha, fmtFechaHora, semaforo, wappLink, puedeAsignar, puedeCerrar, hoy, truncar, construirResponsables } from '../../utils'
 
 // ── Formulario de carga rápida (operario / cualquier usuario) ───────────────
 function FormNuevoHallazgo({ onClose, onGuardado }) {
@@ -165,10 +165,7 @@ function ModalDetalle({ hallazgo, onClose }) {
   const s = semaforo(hallazgo)
   const { directorio } = useStore()
   // Responsables = personas del directorio + usuarios con rol de gestión
-  const lideres = [
-    ...directorio.filter(d => d.proyectoId === proyectoActivo?.id).map(d => ({ id: d.id, nombre: d.nombre, rolLabel: d.rol || '' })),
-    ...usuarios.filter(u => ['admin','direccion','jefe_obra','lider','sh'].includes(u.rol) && u.activo !== false && !directorio.find(d => d.nombre === u.nombre)).map(u => ({ id: u.id, nombre: u.nombre, rolLabel: u.rol }))
-  ]
+  const lideres = construirResponsables(directorio, usuarios, proyectoActivo?.id)
 
   const handleFotoRes = async (e) => {
     const file = e.target.files?.[0]

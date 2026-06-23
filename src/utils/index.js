@@ -60,3 +60,31 @@ export const puedeCerrar   = (rol) => ROLES_GESTION.includes(rol)
 export const puedeExportar = (rol) => ['admin', 'direccion', 'jefe_obra'].includes(rol)
 export const estaAdmin     = (rol) => rol === 'admin'
 export const esDireccion   = (rol) => ['admin', 'direccion', 'jefe_obra'].includes(rol)
+
+// ── Etiqueta de responsable en selects (Nombre — Contrato / Nombre — Rol) ────
+// Capataz y Jefe de Obra → se muestran por rol (suelen tener varios contratos).
+// El resto → por sus rubros sin la palabra "Contrato", separados por coma.
+const ROLES_POR_ROL = ['Capataz', 'Jefe de Obra']
+
+export const infoResponsable = (persona) => {
+  const rol = persona.rol || persona.rolLabel || ''
+  if (ROLES_POR_ROL.includes(rol)) return rol
+  const rubros = Array.isArray(persona.rubros) ? persona.rubros : (persona.rubro ? [persona.rubro] : [])
+  if (rubros.length) {
+    return rubros.map(r => r.replace(/^contrato\s+/i, '').trim()).join(', ')
+  }
+  return rol
+}
+
+// Construye la lista de responsables = directorio del proyecto + usuarios de gestión
+export const construirResponsables = (directorio, usuarios, proyectoId) => {
+  const ROLES_GESTION_USR = ['admin', 'direccion', 'jefe_obra', 'lider', 'sh']
+  return [
+    ...directorio
+      .filter(d => d.proyectoId === proyectoId)
+      .map(d => ({ id: d.id, nombre: d.nombre, telefono: d.telefono, info: infoResponsable(d) })),
+    ...usuarios
+      .filter(u => ROLES_GESTION_USR.includes(u.rol) && u.activo !== false && !directorio.find(d => d.nombre === u.nombre))
+      .map(u => ({ id: u.id, nombre: u.nombre, telefono: u.telefono, info: u.rol }))
+  ]
+}

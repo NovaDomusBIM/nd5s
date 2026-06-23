@@ -7,7 +7,7 @@ import {
   Layout, PageWrap, Topbar, Card, CardTitle, Btn,
   Input, Select, Modal, EmptyState, Badge, Spinner
 } from '../../components'
-import { fmtFecha, fmtFechaHora, truncar } from '../../utils'
+import { fmtFecha, fmtFechaHora, truncar, construirResponsables } from '../../utils'
 import { DESTINOS_INNECESARIO, RUBROS } from '../../data/mock'
 
 const ESTADOS = {
@@ -132,10 +132,7 @@ function ModalDetalle({ item, onClose }) {
   const [obs, setObs]           = useState('')
 
   const { directorio } = useStore()
-  const lideres = [
-    ...directorio.filter(d => d.proyectoId === proyectoActivo?.id).map(d => ({ id: d.id, nombre: d.nombre, info: d.rubros?.join(', ') || d.rol || '' })),
-    ...usuarios.filter(u => ['admin','direccion','jefe_obra','lider','sh'].includes(u.rol) && u.activo !== false && !directorio.find(d => d.nombre === u.nombre)).map(u => ({ id: u.id, nombre: u.nombre, info: u.rol }))
-  ]
+  const lideres = construirResponsables(directorio, usuarios, proyectoActivo?.id)
   const est = ESTADOS[item.estado] || ESTADOS.pendiente
 
   const guardar = async () => {
@@ -208,7 +205,7 @@ function ModalDetalle({ item, onClose }) {
               <Select label="Responsable" value={form.responsable || ''} onChange={e => setForm(f => ({ ...f, responsable: e.target.value }))}>
                 <option value="">Sin asignar</option>
                 {lideres.sort((a,b) => a.nombre.localeCompare(b.nombre)).map((u,i) => (
-                  <option key={u.id||i} value={u.nombre}>{u.nombre}{u.rolLabel ? ' — ' + u.rolLabel : ''}</option>
+                  <option key={u.id||i} value={u.nombre}>{u.nombre}{u.info ? ' — ' + u.info : ''}</option>
                 ))}
               </Select>
               <Input label="Fecha solución" type="date" value={form.fechaSolucion || ''} onChange={e => setForm(f => ({ ...f, fechaSolucion: e.target.value }))} />
