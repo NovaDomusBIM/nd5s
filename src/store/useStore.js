@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { PROYECTOS_SEED, USUARIOS_SEED } from '../data/mock'
 import {
-  loginFirebase, logoutFirebase, onAuthChange,
+  loginFirebase, logoutFirebase, onAuthChange, loginAnonimo,
   getCol, listenCol, addItem, setItem, updateItem, deleteItem, seedIfEmpty
 } from '../services/firebase'
 
@@ -206,6 +206,7 @@ export const useStore = create((set, get) => ({
       proyectoCodigo: proyectoActivo?.codigo || '',
       creadoPor:      usuarioActual?.nombre || data.nombreCargador || 'Anónimo',
       creadoPorId:    usuarioActual?.id || null,
+      uidAnon:        usuarioActual?.anonimo ? (usuarioActual?.uid || null) : null,
       deviceId,
       estado:         'abierto',
       creadoEn:       new Date().toISOString(),
@@ -237,6 +238,7 @@ export const useStore = create((set, get) => ({
       proyectoId:    proyectoActivo?.id || '',
       creadoPor:     usuarioActual?.nombre || data.nombreCargador || 'Anónimo',
       creadoPorId:   usuarioActual?.id || null,
+      uidAnon:       usuarioActual?.anonimo ? (usuarioActual?.uid || null) : null,
       deviceId, estado: 'pendiente',
       creadoEn: new Date().toISOString(),
       actualizadoEn: new Date().toISOString()
@@ -247,5 +249,13 @@ export const useStore = create((set, get) => ({
 
   actualizarInnecesario: async (id, data) => {
     await updateItem('innecesarios', id, { ...data, actualizadoEn: new Date().toISOString() })
+  },
+
+  // Login anónimo para /cargar: solo si no hay ninguna sesión activa.
+  // Da un uid de Firebase estable por dispositivo, necesario para subir a Storage.
+  asegurarAnonimo: async () => {
+    const { usuarioActual } = get()
+    if (usuarioActual) return            // ya hay sesión (con cuenta o anónima)
+    try { await loginAnonimo() } catch (e) { console.error('login anónimo:', e) }
   }
 }))

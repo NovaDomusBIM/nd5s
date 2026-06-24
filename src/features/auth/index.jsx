@@ -60,7 +60,7 @@ export function Login() {
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.18)' }}>V1.8.7</div>
+        <div style={{ marginTop: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.18)' }}>V1.8.8</div>
       </div>
 
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--nd-bg)', padding: 16 }}>

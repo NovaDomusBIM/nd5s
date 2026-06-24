@@ -5,7 +5,7 @@ import { subirFoto, comprimirImagen, updateItem } from '../../services/firebase'
 import { Spinner } from '../../components'
 
 export function CargaPublica() {
-  const { proyectos, proyectoActivo, agregarHallazgo, agregarInnecesario, initListeners } = useStore()
+  const { proyectos, proyectoActivo, agregarHallazgo, agregarInnecesario, initListeners, asegurarAnonimo } = useStore()
   const [nombre,   setNombre]   = useState(getNombreGuardado)
   const [tipo,     setTipo]     = useState('hallazgo') // 'hallazgo' | 'innecesario'
   const [nivel,    setNivel]    = useState('')
@@ -24,7 +24,7 @@ export function CargaPublica() {
   const proyecto = proyectoActivo
   const niveles  = proyecto?.niveles || []
 
-  useEffect(() => { initListeners() }, [])
+  useEffect(() => { initListeners(); asegurarAnonimo() }, [])
 
   const handleFoto = async (e) => {
     const file = e.target.files?.[0]
