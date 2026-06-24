@@ -4,7 +4,7 @@ import { useStore } from '../store/useStore'
 import { semaforo } from '../utils'
 import {
   Home, AlertTriangle, Package, Users, LayoutDashboard, BarChart2,
-  Settings, LogOut, User, Building2, Menu, X
+  Settings, LogOut, User, Building2, Menu, X, Contact
 } from 'lucide-react'
 
 // ── NavItem ──────────────────────────────────────────────────────────────────
@@ -70,6 +70,7 @@ function SidebarContent({ onNavClick }) {
         <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '14px 0 6px 10px', fontFamily: 'var(--font-title)' }}>Gestión</p>
         <NavItem to="/tablero"      icon={LayoutDashboard} label="Tablero 5S"    onClick={onNavClick} />
         <NavItem to="/directorio"   icon={Users}           label="Directorio"    onClick={onNavClick} />
+        <NavItem to="/personal"     icon={Contact}         label="Personal"      onClick={onNavClick} />
         <NavItem to="/estadisticas" icon={BarChart2}       label="Estadísticas"  onClick={onNavClick} />
       </>}
 

@@ -37,7 +37,6 @@ export function Estadisticas() {
   const [fEstado, setFEstado] = useState('todos')     // estado
   const [fSector, setFSector] = useState('todos')     // nivel
   const [fResp,   setFResp]   = useState('todos')      // responsable
-  const [fFoto,   setFFoto]   = useState('todos')      // con / sin foto
 
   const verH = tipo === 'hallazgos' || tipo === 'ambos'
   const verI = tipo === 'innecesarios' || tipo === 'ambos'
@@ -66,18 +65,16 @@ export function Estadisticas() {
     enRango(h, rango) &&
     (fEstado === 'todos' || h.estado === fEstado) &&
     (fSector === 'todos' || h.nivel === fSector) &&
-    (fResp   === 'todos' || h.responsable === fResp) &&
-    (fFoto   === 'todos' || (fFoto === 'con' ? !!h.fotoApertura : !h.fotoApertura))
-  ) : [], [hBase, verH, rango, fEstado, fSector, fResp, fFoto])
+    (fResp   === 'todos' || h.responsable === fResp)
+  ) : [], [hBase, verH, rango, fEstado, fSector, fResp])
 
   // Innecesarios filtrados (estados: pendiente/cerrado; foto en campo "foto")
   const iFilt = useMemo(() => verI ? iBase.filter(i =>
     enRango(i, rango) &&
     (fEstado === 'todos' || i.estado === fEstado || (fEstado === 'abierto' && i.estado === 'pendiente')) &&
     (fSector === 'todos' || i.nivel === fSector) &&
-    (fResp   === 'todos' || i.responsable === fResp) &&
-    (fFoto   === 'todos' || (fFoto === 'con' ? !!i.foto : !i.foto))
-  ) : [], [iBase, verI, rango, fEstado, fSector, fResp, fFoto])
+    (fResp   === 'todos' || i.responsable === fResp)
+  ) : [], [iBase, verI, rango, fEstado, fSector, fResp])
 
   // ── Resumen (KPIs combinados) ───────────────────────────────────────────
   const resumen = useMemo(() => {
@@ -261,7 +258,7 @@ export function Estadisticas() {
         {/* Toggle tipo */}
         <div style={{ display: 'inline-flex', gap: 4, background: '#ececed', borderRadius: 9, padding: 3, marginBottom: 16 }}>
           {[['hallazgos','Hallazgos'],['innecesarios','Innecesarios'],['ambos','Ambos']].map(([val,lbl]) => (
-            <button key={val} onClick={() => { setTipo(val); setFEstado('todos'); setFSector('todos'); setFResp('todos'); setFFoto('todos') }}
+            <button key={val} onClick={() => { setTipo(val); setFEstado('todos'); setFSector('todos'); setFResp('todos') }}
               style={{ border: 'none', cursor: 'pointer', padding: '6px 16px', borderRadius: 7, fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-title)',
                 background: tipo === val ? 'var(--nd-black)' : 'transparent', color: tipo === val ? 'var(--nd-light)' : '#777' }}>{lbl}</button>
           ))}
@@ -294,12 +291,6 @@ export function Estadisticas() {
           <select value={fResp} onChange={e => setFResp(e.target.value)} style={selStyle}>
             <option value="todos">Todos los responsables</option>
             {responsables.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
-
-          <select value={fFoto} onChange={e => setFFoto(e.target.value)} style={selStyle}>
-            <option value="todos">Con y sin foto</option>
-            <option value="con">Con foto</option>
-            <option value="sin">Sin foto</option>
           </select>
         </div>
 

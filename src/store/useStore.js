@@ -17,6 +17,32 @@ const getDeviceId = () => {
 export const getNombreGuardado = () => localStorage.getItem('nd5s_nombre') || ''
 export const setNombreGuardado = (n) => localStorage.setItem('nd5s_nombre', n)
 
+// ── Identidad de operario bloqueada por dispositivo ──────────────────────────
+// IDENTIDAD_VERSION: subir este número fuerza a TODOS los dispositivos a re-elegir
+// su nombre en la próxima carga (limpia la identidad vieja de localStorage).
+const IDENTIDAD_VERSION = '2'
+const migrarIdentidad = () => {
+  if (localStorage.getItem('nd5s_id_version') !== IDENTIDAD_VERSION) {
+    localStorage.removeItem('nd5s_nombre')
+    localStorage.removeItem('nd5s_personal_id')
+    localStorage.setItem('nd5s_id_version', IDENTIDAD_VERSION)
+  }
+}
+migrarIdentidad()
+
+export const getIdentidadLocal = () => ({
+  personalId: localStorage.getItem('nd5s_personal_id') || '',
+  nombre:     localStorage.getItem('nd5s_nombre') || '',
+})
+export const setIdentidadLocal = (personalId, nombre) => {
+  localStorage.setItem('nd5s_personal_id', personalId)
+  localStorage.setItem('nd5s_nombre', nombre)
+}
+export const limpiarIdentidadLocal = () => {
+  localStorage.removeItem('nd5s_personal_id')
+  localStorage.removeItem('nd5s_nombre')
+}
+
 export const useStore = create((set, get) => ({
   usuarioActual:  null,
   cargando:       true,
@@ -27,6 +53,8 @@ export const useStore = create((set, get) => ({
   hallazgos:      [],
   innecesarios:   [],
   directorio:     [],
+  personal:       [],
+  dispositivos:   [],
   _unsubs:        [],
   deviceId:       getDeviceId(),
 
@@ -136,7 +164,9 @@ export const useStore = create((set, get) => ({
     const u1 = listenCol('hallazgos',    h => set({ hallazgos: h }))
     const u2 = listenCol('innecesarios', i => set({ innecesarios: i }))
     const u3 = listenCol('directorio',   d => set({ directorio: d }))
-    set(s => ({ _unsubs: [...s._unsubs, u1, u2, u3] }))
+    const u4 = listenCol('personal',     p => set({ personal: p }))
+    const u5 = listenCol('dispositivos', d => set({ dispositivos: d }))
+    set(s => ({ _unsubs: [...s._unsubs, u1, u2, u3, u4, u5] }))
   },
 
   initListeners: async () => {
@@ -252,6 +282,46 @@ export const useStore = create((set, get) => ({
   },
 
   eliminarInnecesario: async (id) => { await deleteItem('innecesarios', id) },
+
+  // ── Personal de obra ───────────────────────────────────────────────────────
+  agregarPersonal: async (nombre, apellido) => {
+    const { proyectoActivo } = get()
+    await addItem('personal', {
+      nombre: nombre.trim(), apellido: apellido.trim(),
+      proyectoId: proyectoActivo?.id || '', activo: true,
+      creadoEn: new Date().toISOString()
+    })
+  },
+  actualizarPersonal: async (id, data) => { await updateItem('personal', id, data) },
+  eliminarPersonal: async (id) => { await deleteItem('personal', id) },
+
+  // ── Dispositivos (vínculo uid → persona) ───────────────────────────────────
+  // Registra/actualiza el vínculo cuando un operario elige su nombre por 1ª vez.
+  registrarDispositivo: async (uid, persona) => {
+    const { proyectoActivo, dispositivos } = get()
+    const nombreCompleto = `${persona.nombre} ${persona.apellido}`.trim()
+    const existente = dispositivos.find(d => d.uid === uid)
+    if (existente) {
+      await updateItem('dispositivos', existente.id, {
+        personalId: persona.id, nombreCompleto, ultimaCarga: new Date().toISOString()
+      })
+    } else {
+      await addItem('dispositivos', {
+        uid, personalId: persona.id, nombreCompleto,
+        proyectoId: proyectoActivo?.id || '',
+        primeraVez: new Date().toISOString(), ultimaCarga: new Date().toISOString()
+      })
+    }
+  },
+  // Reasignar un dispositivo a otra persona (corregir elección errónea)
+  reasignarDispositivo: async (dispId, persona) => {
+    await updateItem('dispositivos', dispId, {
+      personalId: persona.id,
+      nombreCompleto: `${persona.nombre} ${persona.apellido}`.trim()
+    })
+  },
+  // Resetear: libera el dispositivo para que vuelva a elegir en la próxima carga
+  resetearDispositivo: async (dispId) => { await deleteItem('dispositivos', dispId) },
 
   // Login anónimo para /cargar: solo si no hay ninguna sesión activa.
   // Da un uid de Firebase estable por dispositivo, necesario para subir a Storage.

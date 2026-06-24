@@ -150,7 +150,22 @@ export function Tablero() {
   const [auditorias, setAuditorias] = useState([])
   const [modalAuditoria, setModalAuditoria] = useState(false)
   const [periodo, setPeriodo] = useState('mes_actual')  // mes_actual | mes_anterior | 3meses | 6meses | anio | todo
+  const [fSector, setFSector] = useState('todos')
+  const [fResp,   setFResp]   = useState('todos')
+  const [fEstado, setFEstado] = useState('todos')
   const mesVer = new Date().toISOString().slice(0, 7)
+
+  const dentroDelPeriodo = (fecha) => {
+    if (!fecha) return false
+    if (periodo === 'todo') return true
+    const ahora = new Date(); const f = new Date(fecha)
+    if (periodo === 'mes_actual')   return fecha.slice(0,7) === ahora.toISOString().slice(0,7)
+    if (periodo === 'mes_anterior') { const m = new Date(ahora); m.setMonth(m.getMonth()-1); return fecha.slice(0,7) === m.toISOString().slice(0,7) }
+    if (periodo === '3meses')  { const c = new Date(ahora); c.setMonth(c.getMonth()-3); return f >= c }
+    if (periodo === '6meses')  { const c = new Date(ahora); c.setMonth(c.getMonth()-6); return f >= c }
+    if (periodo === 'anio')    return fecha.slice(0,4) === ahora.toISOString().slice(0,4)
+    return true
+  }
 
   // Cargar auditorías
   React.useEffect(() => {
@@ -165,31 +180,38 @@ export function Tablero() {
   const hProyecto = useMemo(() => hallazgos.filter(h => h.proyectoId === proyectoActivo?.id), [hallazgos, proyectoActivo])
   const iProyecto = useMemo(() => innecesarios.filter(i => i.proyectoId === proyectoActivo?.id), [innecesarios, proyectoActivo])
 
-  // KPIs del mes seleccionado
-  const kpis = useMemo(() => {
-    // Filtrar por período seleccionado
-    const ahora = new Date()
-    const dentroDelPeriodo = (fecha) => {
-      if (!fecha) return false
-      if (periodo === 'todo') return true
-      const f = new Date(fecha)
-      if (periodo === 'mes_actual')   return fecha.slice(0,7) === ahora.toISOString().slice(0,7)
-      if (periodo === 'mes_anterior') { const m = new Date(ahora); m.setMonth(m.getMonth()-1); return fecha.slice(0,7) === m.toISOString().slice(0,7) }
-      if (periodo === '3meses')  { const c = new Date(ahora); c.setMonth(c.getMonth()-3); return f >= c }
-      if (periodo === '6meses')  { const c = new Date(ahora); c.setMonth(c.getMonth()-6); return f >= c }
-      if (periodo === 'anio')    return fecha.slice(0,4) === ahora.toISOString().slice(0,4)
-      return true
-    }
-    const delMes    = hProyecto.filter(h => dentroDelPeriodo(h.creadoEn))
-    const vencidos  = hProyecto.filter(h => h.estado !== 'cerrado' && diasRestantes(h.fechaLimite) < 0)
-    const total     = hProyecto.length
-    const cerrados  = hProyecto.filter(h => h.estado === 'cerrado').length
-    const pctVenc   = total > 0 ? Math.round((vencidos.length / total) * 100) : 0
-    const innecPend = iProyecto.filter(i => i.estado === 'pendiente').length
-    const ultAudit  = [...auditorias].sort((a, b) => new Date(b.creadoEn) - new Date(a.creadoEn))[0]
+  // Opciones de filtros
+  const sectores = useMemo(() => {
+    const s = new Set(); hProyecto.forEach(h => h.nivel && s.add(h.nivel)); return [...s].sort()
+  }, [hProyecto])
+  const responsables = useMemo(() => {
+    const s = new Set(); hProyecto.forEach(h => h.responsable && s.add(h.responsable)); return [...s].sort()
+  }, [hProyecto])
 
+  // Hallazgos filtrados por sector / responsable / estado (período se aplica donde corresponde)
+  const hFilt = useMemo(() => hProyecto.filter(h =>
+    (fSector === 'todos' || h.nivel === fSector) &&
+    (fResp   === 'todos' || h.responsable === fResp) &&
+    (fEstado === 'todos' || h.estado === fEstado)
+  ), [hProyecto, fSector, fResp, fEstado])
+
+  const iFilt = useMemo(() => iProyecto.filter(i =>
+    (fSector === 'todos' || i.nivel === fSector) &&
+    (fResp   === 'todos' || i.responsable === fResp) &&
+    (fEstado === 'todos' || i.estado === fEstado || (fEstado === 'abierto' && i.estado === 'pendiente'))
+  ), [iProyecto, fSector, fResp, fEstado])
+
+  // KPIs del período seleccionado (sobre datos ya filtrados por sector/resp/estado)
+  const kpis = useMemo(() => {
+    const delMes    = hFilt.filter(h => dentroDelPeriodo(h.creadoEn))
+    const vencidos  = hFilt.filter(h => h.estado !== 'cerrado' && diasRestantes(h.fechaLimite) < 0)
+    const total     = hFilt.length
+    const cerrados  = hFilt.filter(h => h.estado === 'cerrado').length
+    const pctVenc   = total > 0 ? Math.round((vencidos.length / total) * 100) : 0
+    const innecPend = iFilt.filter(i => i.estado === 'pendiente').length
+    const ultAudit  = [...auditorias].sort((a, b) => new Date(b.creadoEn) - new Date(a.creadoEn))[0]
     return { delMes: delMes.length, vencidos: vencidos.length, pctVenc, cerrados, total, innecPend, ultAudit }
-  }, [hProyecto, iProyecto, auditorias, periodo])
+  }, [hFilt, iFilt, auditorias, periodo])
 
   // Tendencia mensual últimos 6 meses
   const tendencia = useMemo(() => {
@@ -198,17 +220,17 @@ export function Tablero() {
       const d = new Date(); d.setMonth(d.getMonth() - i)
       const mes = d.toISOString().slice(0, 7)
       const label = d.toLocaleDateString('es-AR', { month: 'short' })
-      const abiertos = hProyecto.filter(h => h.creadoEn?.slice(0, 7) === mes && h.estado !== 'cerrado').length
-      const cerrados = hProyecto.filter(h => h.cerradoEn?.slice(0, 7) === mes).length
+      const abiertos = hFilt.filter(h => h.creadoEn?.slice(0, 7) === mes && h.estado !== 'cerrado').length
+      const cerrados = hFilt.filter(h => h.cerradoEn?.slice(0, 7) === mes).length
       meses.push({ mes: label, abiertos, cerrados })
     }
     return meses
-  }, [hProyecto])
+  }, [hFilt])
 
-  // Ranking sectores
+  // Ranking sectores (abiertos)
   const rankingSectores = useMemo(() => {
     const mapa = {}
-    hProyecto.filter(h => h.estado !== 'cerrado').forEach(h => {
+    hFilt.filter(h => h.estado !== 'cerrado').forEach(h => {
       if (!h.nivel) return
       mapa[h.nivel] = (mapa[h.nivel] || 0) + 1
     })
@@ -216,7 +238,7 @@ export function Tablero() {
       .map(([nivel, count]) => ({ nivel, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 8)
-  }, [hProyecto])
+  }, [hFilt])
 
   // Historial auditorías
   const auditOrdenadas = useMemo(() =>
@@ -241,6 +263,23 @@ export function Tablero() {
             <option value="6meses">Últimos 6 meses</option>
             <option value="anio">Este año</option>
             <option value="todo">Todo el historial</option>
+          </select>
+          <select value={fEstado} onChange={e => setFEstado(e.target.value)}
+            style={{ height: 34, padding: '0 10px', border: '0.5px solid var(--nd-border2)', borderRadius: 7, fontSize: 13, fontFamily: 'var(--font-body)', background: 'var(--nd-white)', cursor: 'pointer' }}>
+            <option value="todos">Todos los estados</option>
+            <option value="abierto">Abiertos / Pendientes</option>
+            <option value="en_proceso">En proceso</option>
+            <option value="cerrado">Cerrados</option>
+          </select>
+          <select value={fSector} onChange={e => setFSector(e.target.value)}
+            style={{ height: 34, padding: '0 10px', border: '0.5px solid var(--nd-border2)', borderRadius: 7, fontSize: 13, fontFamily: 'var(--font-body)', background: 'var(--nd-white)', cursor: 'pointer' }}>
+            <option value="todos">Todos los sectores</option>
+            {sectores.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select value={fResp} onChange={e => setFResp(e.target.value)}
+            style={{ height: 34, padding: '0 10px', border: '0.5px solid var(--nd-border2)', borderRadius: 7, fontSize: 13, fontFamily: 'var(--font-body)', background: 'var(--nd-white)', cursor: 'pointer' }}>
+            <option value="todos">Todos los responsables</option>
+            {responsables.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
           <Btn onClick={() => setModalAuditoria(true)}>
             <ClipboardCheck size={14} /> Nueva auditoría

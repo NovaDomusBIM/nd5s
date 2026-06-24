@@ -1,12 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Camera, X, Send, ChevronDown } from 'lucide-react'
-import { useStore, getNombreGuardado, setNombreGuardado } from '../../store/useStore'
+import { Camera, X, Send, ChevronDown, Lock } from 'lucide-react'
+import { useStore, getIdentidadLocal, setIdentidadLocal } from '../../store/useStore'
 import { subirFoto, comprimirImagen, updateItem } from '../../services/firebase'
 import { Spinner } from '../../components'
 
 export function CargaPublica() {
-  const { proyectos, proyectoActivo, agregarHallazgo, agregarInnecesario, initListeners, asegurarAnonimo } = useStore()
-  const [nombre,   setNombre]   = useState(getNombreGuardado)
+  const { proyectos, proyectoActivo, personal, agregarHallazgo, agregarInnecesario, initListeners, asegurarAnonimo, registrarDispositivo, usuarioActual } = useStore()
+  const identidad = getIdentidadLocal()
+  const [personalId, setPersonalId] = useState(identidad.personalId)
+  const [nombre,   setNombre]   = useState(identidad.nombre)
+  const bloqueado = !!identidad.personalId   // ya eligió antes en este dispositivo
   const [tipo,     setTipo]     = useState('hallazgo') // 'hallazgo' | 'innecesario'
   const [nivel,    setNivel]    = useState('')
   const [zona,     setZona]     = useState('')
@@ -42,16 +45,28 @@ export function CargaPublica() {
     setError('')
   }
 
+  const personalActivo = (personal || [])
+    .filter(p => p.activo !== false && p.proyectoId === proyectoActivo?.id)
+    .sort((a, b) => `${a.apellido} ${a.nombre}`.localeCompare(`${b.apellido} ${b.nombre}`))
+
   const enviar = async () => {
-    if (!nombre.trim()) { setError('Escribí tu nombre'); return }
+    const persona = personalActivo.find(p => p.id === personalId)
+    if (!bloqueado && !persona) { setError('Elegí tu nombre de la lista'); return }
     if (!nivel)         { setError('Seleccioná el sector'); return }
     if (!desc.trim())   { setError('Completá la descripción'); return }
     setSaving(true); setError('')
     try {
-      setNombreGuardado(nombre.trim())
+      const nombreFinal = bloqueado ? nombre : `${persona.nombre} ${persona.apellido}`.trim()
+      // Primera vez en este dispositivo: sellar identidad y registrar vínculo uid→persona
+      if (!bloqueado && persona) {
+        setIdentidadLocal(persona.id, nombreFinal)
+        setPersonalId(persona.id); setNombre(nombreFinal)
+        const uid = usuarioActual?.uid
+        if (uid) { try { await registrarDispositivo(uid, persona) } catch (e) { console.error('registrar dispositivo:', e) } }
+      }
       if (tipo === 'hallazgo') {
         const id = await agregarHallazgo({
-          nombreCargador: nombre.trim(),
+          nombreCargador: nombreFinal,
           nivel, zona: zona.trim(),
           descripcion: desc.trim(),
           observacion: obs.trim(),
@@ -63,7 +78,7 @@ export function CargaPublica() {
         }
       } else {
         const id = await agregarInnecesario({
-          nombreCargador: nombre.trim(),
+          nombreCargador: nombreFinal,
           nivel, detalle: desc.trim(),
           cantidad: cantidad.trim(),
           causa: causa.trim(),
@@ -114,19 +129,31 @@ export function CargaPublica() {
 
       <div style={{ maxWidth: 480, margin: '0 auto', padding: '24px 16px' }}>
 
-        {/* Nombre */}
+        {/* Nombre — select de personal la primera vez, luego bloqueado */}
         <div style={{ marginBottom: 20 }}>
           <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 6, fontWeight: 600 }}>
             Tu nombre
           </label>
-          <input
-            type="text"
-            placeholder="Ej: Juan Pérez"
-            value={nombre}
-            onChange={e => setNombre(e.target.value)}
-            style={{ width: '100%', height: 44, padding: '0 14px', border: '0.5px solid var(--nd-border2)', borderRadius: 10, fontSize: 16, background: '#fff', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }}
-          />
-          {nombre && <p style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>Guardado en este dispositivo para la próxima vez</p>}
+          {bloqueado ? (
+            <div style={{ width: '100%', minHeight: 44, padding: '0 14px', border: '0.5px solid var(--nd-border2)', borderRadius: 10, background: '#f3f4f6', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <span style={{ fontSize: 16, color: '#333', fontWeight: 600, fontFamily: 'var(--font-body)' }}>{nombre}</span>
+              <Lock size={15} color="#9aa0a6" />
+            </div>
+          ) : (
+            <select value={personalId} onChange={e => setPersonalId(e.target.value)}
+              style={{ width: '100%', height: 44, padding: '0 14px', border: '0.5px solid var(--nd-border2)', borderRadius: 10, fontSize: 16, background: '#fff', cursor: 'pointer', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }}>
+              <option value="">Elegí tu nombre...</option>
+              {personalActivo.map(p => (
+                <option key={p.id} value={p.id}>{p.apellido}, {p.nombre}</option>
+              ))}
+            </select>
+          )}
+          {bloqueado
+            ? <p style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>Tu nombre quedó fijado en este dispositivo</p>
+            : <p style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>Elegí tu nombre una sola vez. Quedará fijo en este celular.</p>}
+          {!bloqueado && personalActivo.length === 0 && (
+            <p style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>No hay personal cargado. Avisá a oficina técnica.</p>
+          )}
         </div>
 
         {/* Tipo */}

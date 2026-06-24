@@ -9,6 +9,7 @@ import { Usuarios } from '../features/usuarios'
 import { Hallazgos } from '../features/hallazgos'
 import { Innecesarios } from '../features/innecesarios'
 import { Directorio } from '../features/directorio'
+import { Personal } from '../features/personal'
 import { Tablero } from '../features/tablero'
 import { Estadisticas } from '../features/estadisticas'
 import { Configuracion } from '../features/config'
@@ -33,6 +34,7 @@ export default function App() {
       <Route path="/innecesarios" element={<P><Innecesarios /></P>} />
       <Route path="/tablero"      element={<P roles={['admin','direccion','jefe_obra','lider','sh']}><Tablero /></P>} />
       <Route path="/directorio"   element={<P roles={['admin','direccion','jefe_obra','lider','sh']}><Directorio /></P>} />
+      <Route path="/personal"     element={<P roles={['admin','direccion','jefe_obra','lider','sh']}><Personal /></P>} />
       <Route path="/estadisticas" element={<P roles={['admin','direccion','jefe_obra','lider','sh']}><Estadisticas /></P>} />
       <Route path="/proyectos"    element={<P roles={['admin']}><Proyectos /></P>} />
       <Route path="/usuarios"     element={<P roles={['admin']}><Usuarios /></P>} />
