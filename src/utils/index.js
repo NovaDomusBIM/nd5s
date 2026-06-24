@@ -58,6 +58,7 @@ const ROLES_GESTION = ['admin', 'direccion', 'jefe_obra', 'lider', 'sh']
 export const puedeAsignar  = (rol) => ROLES_GESTION.includes(rol)
 export const puedeCerrar   = (rol) => ROLES_GESTION.includes(rol)
 export const puedeExportar = (rol) => ['admin', 'direccion', 'jefe_obra'].includes(rol)
+export const puedeBorrar   = (rol) => ['admin', 'direccion', 'jefe_obra'].includes(rol)
 export const estaAdmin     = (rol) => rol === 'admin'
 export const esDireccion   = (rol) => ['admin', 'direccion', 'jefe_obra'].includes(rol)
 

@@ -251,6 +251,8 @@ export const useStore = create((set, get) => ({
     await updateItem('innecesarios', id, { ...data, actualizadoEn: new Date().toISOString() })
   },
 
+  eliminarInnecesario: async (id) => { await deleteItem('innecesarios', id) },
+
   // Login anónimo para /cargar: solo si no hay ninguna sesión activa.
   // Da un uid de Firebase estable por dispositivo, necesario para subir a Storage.
   asegurarAnonimo: async () => {

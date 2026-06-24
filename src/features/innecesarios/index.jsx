@@ -5,9 +5,9 @@ import { subirFoto, comprimirImagen } from '../../services/firebase'
 import { updateItem } from '../../services/firebase'
 import {
   Layout, PageWrap, Topbar, Card, CardTitle, Btn,
-  Input, Select, Modal, EmptyState, Badge, Spinner
+  Input, Select, Modal, EmptyState, Badge, Spinner, Lightbox
 } from '../../components'
-import { fmtFecha, fmtFechaHora, truncar, construirResponsables } from '../../utils'
+import { fmtFecha, fmtFechaHora, truncar, construirResponsables, puedeAsignar, puedeBorrar } from '../../utils'
 import { DESTINOS_INNECESARIO, RUBROS } from '../../data/mock'
 
 const ESTADOS = {
@@ -122,8 +122,32 @@ function FormNuevo({ onClose }) {
 
 // ── Modal detalle innecesario ─────────────────────────────────────────────────
 function ModalDetalle({ item, onClose }) {
-  const { actualizarInnecesario, usuarioActual, usuarios, proyectoActivo } = useStore()
+  const { actualizarInnecesario, eliminarInnecesario, usuarioActual, usuarios, proyectoActivo } = useStore()
   const rol = usuarioActual?.rol
+  const [lightbox, setLightbox]     = useState(null)
+  const [subiendoFoto, setSubiendoFoto] = useState(false)
+  const fotoAddRef = useRef()
+
+  const handleAgregarFoto = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setSubiendoFoto(true)
+    try {
+      const blob = await comprimirImagen(file, 150)
+      const url = await subirFoto(proyectoActivo.id, item.id, blob, 'innec')
+      await actualizarInnecesario(item.id, { foto: url })
+    } catch (err) {
+      alert('Error al subir la foto: ' + err.message)
+    } finally {
+      setSubiendoFoto(false)
+    }
+  }
+
+  const handleEliminar = async () => {
+    if (!confirm('¿Eliminar este innecesario? Esta acción no se puede deshacer.')) return
+    await eliminarInnecesario(item.id)
+    onClose()
+  }
   const puedeGestionar = ['admin','direccion','jefe_obra','lider','sh'].includes(rol)
   const [editando, setEditando] = useState(false)
   const [form, setForm]         = useState({ ...item })
@@ -171,7 +195,16 @@ function ModalDetalle({ item, onClose }) {
       </div>
 
       {/* Foto */}
-      {item.foto && <img src={item.foto} alt="Innecesario" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 8, marginBottom: 16, border: '0.5px solid var(--nd-border)' }} />}
+      {item.foto ? (
+        <img src={item.foto} alt="Innecesario" onClick={() => setLightbox(item.foto)} style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 8, marginBottom: 16, border: '0.5px solid var(--nd-border)', cursor: 'zoom-in' }} />
+      ) : puedeAsignar(rol) && (
+        <div style={{ marginBottom: 16 }}>
+          <Btn variant="secondary" onClick={() => fotoAddRef.current?.click()} disabled={subiendoFoto} style={{ width: '100%' }}>
+            {subiendoFoto ? <><Spinner size={14} /> Subiendo...</> : <><Camera size={14} /> Agregar foto</>}
+          </Btn>
+          <input ref={fotoAddRef} type="file" accept="image/*" capture="environment" onChange={handleAgregarFoto} style={{ display: 'none' }} />
+        </div>
+      )}
 
       {/* Info */}
       <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse', marginBottom: 16 }}>
@@ -264,6 +297,17 @@ function ModalDetalle({ item, onClose }) {
           {item.observacionCierre && <p style={{ fontSize: 13, color: '#047857' }}>{item.observacionCierre}</p>}
         </div>
       )}
+
+      {puedeBorrar(rol) && (
+        <div style={{ borderTop: '0.5px solid var(--nd-border)', marginTop: 16, paddingTop: 14, textAlign: 'right' }}>
+          <button onClick={handleEliminar}
+            style={{ background: 'none', border: 'none', color: '#b91c1c', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-body)' }}>
+            <X size={13} /> Eliminar innecesario
+          </button>
+        </div>
+      )}
+
+      {lightbox && <Lightbox src={lightbox} onClose={() => setLightbox(null)} />}
     </Modal>
   )
 }

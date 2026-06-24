@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import { semaforo } from '../utils'
@@ -432,5 +432,26 @@ export function SemaforoChip({ hallazgo }) {
     }}>
       {s.label}
     </span>
+  )
+}
+
+// ── Lightbox: muestra una imagen en grande sobre fondo oscuro ────────────────
+export function Lightbox({ src, onClose }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+  if (!src) return null
+  return (
+    <div onClick={onClose}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, cursor: 'zoom-out' }}>
+      <button onClick={onClose}
+        style={{ position: 'absolute', top: 18, right: 20, background: 'rgba(255,255,255,0.12)', color: '#fff',
+          border: 'none', borderRadius: '50%', width: 38, height: 38, fontSize: 22, lineHeight: 1, cursor: 'pointer' }}>×</button>
+      <img src={src} alt="" onClick={e => e.stopPropagation()}
+        style={{ maxWidth: '95%', maxHeight: '90%', objectFit: 'contain', borderRadius: 8, cursor: 'default' }} />
+    </div>
   )
 }
