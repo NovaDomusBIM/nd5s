@@ -182,6 +182,22 @@ export const useStore = create((set, get) => ({
     get()._iniciarListeners(proyectoActivo)
   },
 
+  // Carga inmediata de personal + dispositivos para /cargar (one-shot, no espera al listener)
+  cargarPersonalDirecto: async () => {
+    try {
+      let { proyectoActivo, proyectos } = get()
+      if (!proyectoActivo) {
+        proyectos = proyectos.length ? proyectos : await getCol('proyectos')
+        proyectoActivo = proyectos.find(p => p.estado === 'activo') || proyectos[0] || null
+        if (proyectoActivo) set({ proyectos, proyectoActivo })
+      }
+      const [personal, dispositivos] = await Promise.all([
+        getCol('personal'), getCol('dispositivos')
+      ])
+      set({ personal, dispositivos })
+    } catch (e) { console.error('cargar personal directo:', e) }
+  },
+
   setProyectoActivo: (proyecto) => {
     get()._unsubs.forEach(u => typeof u === 'function' && u())
     set({ proyectoActivo: proyecto, hallazgos: [], innecesarios: [], _unsubs: [] })
