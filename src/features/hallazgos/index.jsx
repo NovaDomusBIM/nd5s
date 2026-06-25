@@ -174,9 +174,10 @@ function ModalDetalle({ hallazgo, onClose }) {
     }
   }
 
-  const handleEliminar = async () => {
-    if (!confirm('¿Eliminar este hallazgo? Esta acción no se puede deshacer.')) return
-    await eliminarHallazgo(hallazgo.id)
+  const [descartando, setDescartando] = useState(false)
+
+  const handleEliminar = async (motivo) => {
+    await eliminarHallazgo(hallazgo.id, motivo)
     onClose()
   }
   const [resolucion, setResolucion] = useState('')
@@ -399,11 +400,37 @@ function ModalDetalle({ hallazgo, onClose }) {
 
       {/* Borrar — solo admin / dirección / jefe de obra */}
       {puedeBorrar(rol) && (
-        <div style={{ borderTop: '0.5px solid var(--nd-border)', marginTop: 16, paddingTop: 14, textAlign: 'right' }}>
-          <button onClick={handleEliminar}
-            style={{ background: 'none', border: 'none', color: '#b91c1c', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-body)' }}>
-            <X size={13} /> Eliminar hallazgo
-          </button>
+        <div style={{ borderTop: '0.5px solid var(--nd-border)', marginTop: 16, paddingTop: 14 }}>
+          {!descartando ? (
+            <div style={{ textAlign: 'right' }}>
+              <button onClick={() => setDescartando(true)}
+                style={{ background: 'none', border: 'none', color: '#b91c1c', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-body)' }}>
+                <X size={13} /> Eliminar hallazgo
+              </button>
+            </div>
+          ) : (
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--nd-mid)', marginBottom: 8 }}>¿Por qué lo eliminás?</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <button onClick={() => handleEliminar('no_5s')}
+                  style={{ textAlign: 'left', padding: '10px 12px', border: '0.5px solid var(--nd-border2)', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-body)' }}>
+                  No pertenece al 5S
+                </button>
+                <button onClick={() => handleEliminar('duplicado')}
+                  style={{ textAlign: 'left', padding: '10px 12px', border: '0.5px solid var(--nd-border2)', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-body)' }}>
+                  Duplicado
+                </button>
+                <button onClick={() => handleEliminar('error')}
+                  style={{ textAlign: 'left', padding: '10px 12px', border: '0.5px solid var(--nd-border2)', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-body)' }}>
+                  Cargado por error
+                </button>
+                <button onClick={() => setDescartando(false)}
+                  style={{ padding: '8px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--nd-mid)', fontFamily: 'var(--font-body)' }}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

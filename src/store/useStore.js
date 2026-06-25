@@ -52,6 +52,8 @@ export const useStore = create((set, get) => ({
   usuarios:       [],
   hallazgos:      [],
   innecesarios:   [],
+  hallazgosDescartados:    [],
+  innecesariosDescartados: [],
   directorio:     [],
   personal:       [],
   dispositivos:   [],
@@ -161,8 +163,14 @@ export const useStore = create((set, get) => ({
 
   _iniciarListeners: (proyectoActivo) => {
     if (!proyectoActivo) return
-    const u1 = listenCol('hallazgos',    h => set({ hallazgos: h }))
-    const u2 = listenCol('innecesarios', i => set({ innecesarios: i }))
+    const u1 = listenCol('hallazgos', list => set({
+      hallazgos:            list.filter(h => !h.descartado),
+      hallazgosDescartados: list.filter(h =>  h.descartado)
+    }))
+    const u2 = listenCol('innecesarios', list => set({
+      innecesarios:            list.filter(i => !i.descartado),
+      innecesariosDescartados: list.filter(i =>  i.descartado)
+    }))
     const u3 = listenCol('directorio',   d => set({ directorio: d }))
     const u4 = listenCol('personal',     p => set({ personal: p }))
     const u5 = listenCol('dispositivos', d => set({ dispositivos: d }))
@@ -275,7 +283,15 @@ export const useStore = create((set, get) => ({
     })
   },
 
-  eliminarHallazgo: async (id) => { await deleteItem('hallazgos', id) },
+  eliminarHallazgo: async (id, motivo = 'error') => {
+    const { usuarioActual } = get()
+    await updateItem('hallazgos', id, {
+      descartado: true, motivoDescarte: motivo,
+      descartadoPor: usuarioActual?.nombre || 'Admin',
+      descartadoEn: new Date().toISOString(),
+      actualizadoEn: new Date().toISOString()
+    })
+  },
 
   agregarInnecesario: async (data) => {
     const { proyectoActivo, usuarioActual, deviceId } = get()
@@ -297,7 +313,15 @@ export const useStore = create((set, get) => ({
     await updateItem('innecesarios', id, { ...data, actualizadoEn: new Date().toISOString() })
   },
 
-  eliminarInnecesario: async (id) => { await deleteItem('innecesarios', id) },
+  eliminarInnecesario: async (id, motivo = 'error') => {
+    const { usuarioActual } = get()
+    await updateItem('innecesarios', id, {
+      descartado: true, motivoDescarte: motivo,
+      descartadoPor: usuarioActual?.nombre || 'Admin',
+      descartadoEn: new Date().toISOString(),
+      actualizadoEn: new Date().toISOString()
+    })
+  },
 
   // ── Personal de obra ───────────────────────────────────────────────────────
   agregarPersonal: async (nombre, apellido) => {
