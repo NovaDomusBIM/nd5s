@@ -21,6 +21,33 @@ export function Personal() {
   const [apellido, setApellido] = useState('')
   const [saving, setSaving]   = useState(false)
   const [reasignar, setReasignar] = useState(null) // dispositivo a reasignar
+  const [importar, setImportar]   = useState(false)
+  const [textoImport, setTextoImport] = useState('')
+  const [importando, setImportando]   = useState(false)
+
+  // Importación masiva: una persona por línea, formato "Apellido, Nombre" o "Apellido Nombre"
+  // (acepta coma; si no hay coma, toma la última palabra como nombre — editable luego)
+  const procesarImport = async () => {
+    const lineas = textoImport.split('\n').map(l => l.trim()).filter(Boolean)
+    if (!lineas.length) return
+    setImportando(true)
+    try {
+      const parsed = lineas.map(l => {
+        if (l.includes(',')) {
+          const [ape, nom] = l.split(',')
+          return { apellido: ape.trim(), nombre: (nom || '').trim() }
+        }
+        // sin coma: última palabra = nombre, resto = apellido
+        const partes = l.split(/\s+/)
+        const nombre = partes.pop()
+        return { apellido: partes.join(' '), nombre }
+      }).filter(p => p.nombre && p.apellido)
+      // Cargar en orden alfabético por apellido
+      parsed.sort((a, b) => `${a.apellido} ${a.nombre}`.localeCompare(`${b.apellido} ${b.nombre}`))
+      for (const p of parsed) await agregarPersonal(p.nombre, p.apellido)
+      setImportar(false); setTextoImport('')
+    } finally { setImportando(false) }
+  }
 
   const lista = useMemo(() =>
     (personal || [])
@@ -63,6 +90,7 @@ export function Personal() {
     <Layout>
       <PageWrap>
         <Topbar title="Personal" subtitle={proyectoActivo?.nombre}>
+          {puedeEditar && <Btn variant="secondary" onClick={() => setImportar(true)}>Importar lista</Btn>}
           {puedeEditar && <Btn onClick={abrirNuevo}><Plus size={15} /> Agregar persona</Btn>}
         </Topbar>
 
@@ -158,6 +186,24 @@ export function Personal() {
                   {p.apellido}, {p.nombre}
                 </button>
               ))}
+            </div>
+          </Modal>
+        )}
+        {/* Modal importar lista */}
+        {importar && (
+          <Modal onClose={() => setImportar(false)} title="Importar lista de personal" width={460}>
+            <p style={{ fontSize: 13, color: 'var(--nd-mid)', marginBottom: 10 }}>
+              Pegá una persona por línea, en formato <b>Apellido, Nombre</b>.
+              Por ejemplo: <i>Lopez, Oscar Luis</i>. Se cargan en orden alfabético.
+            </p>
+            <textarea rows={10} value={textoImport} onChange={e => setTextoImport(e.target.value)}
+              placeholder={'Lopez, Oscar Luis\nLlaveta Castro, Sergio\nSubelza Chaira, Agustín'}
+              style={{ width: '100%', padding: '10px 12px', border: '0.5px solid var(--nd-border2)', borderRadius: 8, fontSize: 13, fontFamily: 'monospace', lineHeight: 1.5, resize: 'vertical', boxSizing: 'border-box' }} />
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <Btn variant="secondary" onClick={() => setImportar(false)}>Cancelar</Btn>
+              <Btn onClick={procesarImport} disabled={importando || !textoImport.trim()}>
+                {importando ? <><Spinner size={14} /> Importando...</> : 'Importar'}
+              </Btn>
             </div>
           </Modal>
         )}

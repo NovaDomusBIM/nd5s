@@ -9,6 +9,8 @@ export function CargaPublica() {
   const identidad = getIdentidadLocal()
   const [personalId, setPersonalId] = useState(identidad.personalId)
   const [nombre,   setNombre]   = useState(identidad.nombre)
+  const [busqueda, setBusqueda] = useState('')
+  const [listaAbierta, setListaAbierta] = useState(false)
   const bloqueado = !!identidad.personalId   // ya eligió antes en este dispositivo
   const [tipo,     setTipo]     = useState('hallazgo') // 'hallazgo' | 'innecesario'
   const [nivel,    setNivel]    = useState('')
@@ -48,6 +50,10 @@ export function CargaPublica() {
   const personalActivo = (personal || [])
     .filter(p => p.activo !== false && p.proyectoId === proyectoActivo?.id)
     .sort((a, b) => `${a.apellido} ${a.nombre}`.localeCompare(`${b.apellido} ${b.nombre}`))
+
+  const personalFiltrado = busqueda.trim()
+    ? personalActivo.filter(p => `${p.apellido} ${p.nombre}`.toLowerCase().includes(busqueda.trim().toLowerCase()))
+    : personalActivo
 
   const enviar = async () => {
     const persona = personalActivo.find(p => p.id === personalId)
@@ -129,31 +135,54 @@ export function CargaPublica() {
 
       <div style={{ maxWidth: 480, margin: '0 auto', padding: '24px 16px' }}>
 
-        {/* Nombre — select de personal la primera vez, luego bloqueado */}
-        <div style={{ marginBottom: 20 }}>
+        {/* Nombre — buscador de personal la primera vez, luego bloqueado */}
+        <div style={{ marginBottom: 20, position: 'relative' }}>
           <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 6, fontWeight: 600 }}>
             Tu nombre
           </label>
           {bloqueado ? (
-            <div style={{ width: '100%', minHeight: 44, padding: '0 14px', border: '0.5px solid var(--nd-border2)', borderRadius: 10, background: '#f3f4f6', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <div style={{ width: '100%', minHeight: 48, padding: '0 14px', border: '0.5px solid var(--nd-border2)', borderRadius: 10, background: '#f3f4f6', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
               <span style={{ fontSize: 16, color: '#333', fontWeight: 600, fontFamily: 'var(--font-body)' }}>{nombre}</span>
               <Lock size={15} color="#9aa0a6" />
             </div>
+          ) : personalId ? (
+            // Ya eligió en esta sesión (aún no envió): muestra el elegido con opción de cambiar
+            <div style={{ width: '100%', minHeight: 48, padding: '0 14px', border: '1.5px solid var(--nd-black)', borderRadius: 10, background: '#fff', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <span style={{ fontSize: 16, color: '#222', fontWeight: 600, fontFamily: 'var(--font-body)' }}>{nombre}</span>
+              <button onClick={() => { setPersonalId(''); setNombre(''); setBusqueda(''); setListaAbierta(true) }}
+                style={{ background: 'none', border: 'none', color: 'var(--nd-mid)', fontSize: 12, cursor: 'pointer', textDecoration: 'underline', fontFamily: 'var(--font-body)' }}>cambiar</button>
+            </div>
           ) : (
-            <select value={personalId} onChange={e => setPersonalId(e.target.value)}
-              style={{ width: '100%', height: 44, padding: '0 14px', border: '0.5px solid var(--nd-border2)', borderRadius: 10, fontSize: 16, background: '#fff', cursor: 'pointer', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }}>
-              <option value="">Elegí tu nombre...</option>
-              {personalActivo.map(p => (
-                <option key={p.id} value={p.id}>{p.apellido}, {p.nombre}</option>
-              ))}
-            </select>
+            <>
+              <input
+                type="text"
+                inputMode="search"
+                placeholder="Escribí tu apellido para buscarte..."
+                value={busqueda}
+                onChange={e => { setBusqueda(e.target.value); setListaAbierta(true) }}
+                onFocus={() => setListaAbierta(true)}
+                style={{ width: '100%', height: 48, padding: '0 14px', border: '0.5px solid var(--nd-border2)', borderRadius: 10, fontSize: 16, background: '#fff', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }}
+              />
+              {listaAbierta && (
+                <div style={{ marginTop: 6, border: '0.5px solid var(--nd-border2)', borderRadius: 10, background: '#fff', maxHeight: 240, overflowY: 'auto', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
+                  {personalFiltrado.length === 0 ? (
+                    <div style={{ padding: '14px', fontSize: 14, color: '#999', textAlign: 'center' }}>
+                      {personalActivo.length === 0 ? 'No hay personal cargado. Avisá a oficina técnica.' : 'No se encontró ese nombre'}
+                    </div>
+                  ) : personalFiltrado.map(p => (
+                    <button key={p.id}
+                      onClick={() => { setPersonalId(p.id); setNombre(`${p.nombre} ${p.apellido}`.trim()); setListaAbierta(false) }}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', padding: '14px 16px', border: 'none', borderBottom: '0.5px solid #f0f0f0', background: '#fff', fontSize: 16, cursor: 'pointer', fontFamily: 'var(--font-body)', color: '#222' }}>
+                      <span style={{ fontWeight: 600 }}>{p.apellido}</span>, {p.nombre}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
           )}
           {bloqueado
             ? <p style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>Tu nombre quedó fijado en este dispositivo</p>
-            : <p style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>Elegí tu nombre una sola vez. Quedará fijo en este celular.</p>}
-          {!bloqueado && personalActivo.length === 0 && (
-            <p style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>No hay personal cargado. Avisá a oficina técnica.</p>
-          )}
+            : !personalId && <p style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>Elegí tu nombre una sola vez. Quedará fijo en este celular.</p>}
         </div>
 
         {/* Tipo */}
