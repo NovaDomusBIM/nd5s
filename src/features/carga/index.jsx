@@ -30,7 +30,13 @@ export function CargaPublica() {
   const proyecto = proyectoActivo
   const niveles  = proyecto?.niveles || []
 
-  useEffect(() => { initListeners(); asegurarAnonimo(); cargarPersonalDirecto() }, [])
+  useEffect(() => {
+    (async () => {
+      await asegurarAnonimo()      // primero garantizar sesión (Firestore exige auth)
+      await cargarPersonalDirecto() // recién entonces leer personal/dispositivos
+      initListeners()               // y dejar listeners para actualizaciones en vivo
+    })()
+  }, [])
 
   const handleFoto = async (e) => {
     const file = e.target.files?.[0]
