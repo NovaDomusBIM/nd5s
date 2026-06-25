@@ -57,6 +57,11 @@ export function Personal() {
 
   const dispsDe = (personalId) => (dispositivos || []).filter(d => d.personalId === personalId)
 
+  // Métricas para la reunión de registro
+  const registrados = lista.filter(p => dispsDe(p.id).length > 0).length
+  const pendientes  = lista.length - registrados
+  const conDuplicado = lista.filter(p => dispsDe(p.id).length > 1).length
+
   const abrirNuevo = () => { setEditId(null); setNombre(''); setApellido(''); setModal(true) }
   const abrirEditar = (p) => { setEditId(p.id); setNombre(p.nombre); setApellido(p.apellido); setModal(true) }
 
@@ -94,10 +99,32 @@ export function Personal() {
           {puedeEditar && <Btn onClick={abrirNuevo}><Plus size={15} /> Agregar persona</Btn>}
         </Topbar>
 
-        <p style={{ fontSize: 13, color: 'var(--nd-mid)', marginBottom: 18, maxWidth: 620 }}>
+        <p style={{ fontSize: 13, color: 'var(--nd-mid)', marginBottom: 14, maxWidth: 620 }}>
           Listado del personal de obra que carga desde <b>/cargar</b>. Cada persona elige su nombre de esta lista
           la primera vez y queda fijado a su dispositivo. Desde acá podés corregir o liberar esos vínculos.
         </p>
+
+        {/* Contadores de registro */}
+        {lista.length > 0 && (
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 18 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: '#eaf6ef', borderRadius: 8, fontSize: 13 }}>
+              <span style={{ fontWeight: 700, color: '#1a7a4a', fontSize: 16 }}>{registrados}</span>
+              <span style={{ color: 'var(--nd-mid)' }}>de {lista.length} registrados</span>
+            </div>
+            {pendientes > 0 && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: '#f3f4f6', borderRadius: 8, fontSize: 13 }}>
+                <span style={{ fontWeight: 700, color: '#777', fontSize: 16 }}>{pendientes}</span>
+                <span style={{ color: 'var(--nd-mid)' }}>pendientes</span>
+              </div>
+            )}
+            {conDuplicado > 0 && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: '#fef3c7', borderRadius: 8, fontSize: 13 }}>
+                <span style={{ fontWeight: 700, color: '#b86a00', fontSize: 16 }}>{conDuplicado}</span>
+                <span style={{ color: '#b86a00' }}>con más de un dispositivo</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {lista.length === 0 ? (
           <EmptyState icon={Users} title="Sin personal cargado"
@@ -106,8 +133,9 @@ export function Personal() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {lista.map(p => {
               const disps = dispsDe(p.id)
+              const estadoColor = disps.length > 1 ? '#b86a00' : disps.length === 1 ? '#1a7a4a' : '#d8dade'
               return (
-                <Card key={p.id} style={{ padding: '14px 16px' }}>
+                <Card key={p.id} style={{ padding: '14px 16px', borderLeft: `3px solid ${estadoColor}` }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--nd-black)', fontFamily: 'var(--font-title)' }}>

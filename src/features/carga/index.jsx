@@ -5,13 +5,14 @@ import { subirFoto, comprimirImagen, updateItem } from '../../services/firebase'
 import { Spinner } from '../../components'
 
 export function CargaPublica() {
-  const { proyectos, proyectoActivo, personal, agregarHallazgo, agregarInnecesario, initListeners, asegurarAnonimo, registrarDispositivo, usuarioActual } = useStore()
+  const { proyectos, proyectoActivo, personal, dispositivos, agregarHallazgo, agregarInnecesario, initListeners, asegurarAnonimo, registrarDispositivo, usuarioActual } = useStore()
   const identidad = getIdentidadLocal()
   const [personalId, setPersonalId] = useState(identidad.personalId)
   const [nombre,   setNombre]   = useState(identidad.nombre)
   const [busqueda, setBusqueda] = useState('')
   const [listaAbierta, setListaAbierta] = useState(false)
-  const bloqueado = !!identidad.personalId   // ya eligió antes en este dispositivo
+  const [bloqueado, setBloqueado] = useState(!!identidad.personalId)  // ya confirmó en este dispositivo
+  const [confirmando, setConfirmando] = useState(false)
   const [tipo,     setTipo]     = useState('hallazgo') // 'hallazgo' | 'innecesario'
   const [nivel,    setNivel]    = useState('')
   const [zona,     setZona]     = useState('')
@@ -55,21 +56,33 @@ export function CargaPublica() {
     ? personalActivo.filter(p => `${p.apellido} ${p.nombre}`.toLowerCase().includes(busqueda.trim().toLowerCase()))
     : personalActivo
 
+  // ¿El nombre elegido ya tiene un dispositivo vinculado distinto a este?
+  const personaElegida = personalActivo.find(p => p.id === personalId)
+  const yaRegistrado = personalId && (dispositivos || []).some(
+    d => d.personalId === personalId && d.uid !== usuarioActual?.uid
+  )
+
+  // Confirmar identidad: sella el vínculo sin cargar ningún hallazgo
+  const confirmarNombre = async () => {
+    if (!personaElegida) return
+    setConfirmando(true)
+    try {
+      const nombreFinal = `${personaElegida.nombre} ${personaElegida.apellido}`.trim()
+      setIdentidadLocal(personaElegida.id, nombreFinal)
+      setNombre(nombreFinal)
+      const uid = usuarioActual?.uid
+      if (uid) { try { await registrarDispositivo(uid, personaElegida) } catch (e) { console.error('registrar dispositivo:', e) } }
+      setBloqueado(true)
+    } finally { setConfirmando(false) }
+  }
+
   const enviar = async () => {
-    const persona = personalActivo.find(p => p.id === personalId)
-    if (!bloqueado && !persona) { setError('Elegí tu nombre de la lista'); return }
+    if (!bloqueado) { setError('Primero confirmá tu nombre'); return }
     if (!nivel)         { setError('Seleccioná el sector'); return }
     if (!desc.trim())   { setError('Completá la descripción'); return }
     setSaving(true); setError('')
     try {
-      const nombreFinal = bloqueado ? nombre : `${persona.nombre} ${persona.apellido}`.trim()
-      // Primera vez en este dispositivo: sellar identidad y registrar vínculo uid→persona
-      if (!bloqueado && persona) {
-        setIdentidadLocal(persona.id, nombreFinal)
-        setPersonalId(persona.id); setNombre(nombreFinal)
-        const uid = usuarioActual?.uid
-        if (uid) { try { await registrarDispositivo(uid, persona) } catch (e) { console.error('registrar dispositivo:', e) } }
-      }
+      const nombreFinal = nombre
       if (tipo === 'hallazgo') {
         const id = await agregarHallazgo({
           nombreCargador: nombreFinal,
@@ -146,12 +159,24 @@ export function CargaPublica() {
               <Lock size={15} color="#9aa0a6" />
             </div>
           ) : personalId ? (
-            // Ya eligió en esta sesión (aún no envió): muestra el elegido con opción de cambiar
-            <div style={{ width: '100%', minHeight: 48, padding: '0 14px', border: '1.5px solid var(--nd-black)', borderRadius: 10, background: '#fff', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <span style={{ fontSize: 16, color: '#222', fontWeight: 600, fontFamily: 'var(--font-body)' }}>{nombre}</span>
-              <button onClick={() => { setPersonalId(''); setNombre(''); setBusqueda(''); setListaAbierta(true) }}
-                style={{ background: 'none', border: 'none', color: 'var(--nd-mid)', fontSize: 12, cursor: 'pointer', textDecoration: 'underline', fontFamily: 'var(--font-body)' }}>cambiar</button>
-            </div>
+            // Eligió pero todavía no confirmó: muestra el nombre + botón confirmar
+            <>
+              <div style={{ width: '100%', minHeight: 48, padding: '0 14px', border: '1.5px solid var(--nd-black)', borderRadius: 10, background: '#fff', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ fontSize: 16, color: '#222', fontWeight: 600, fontFamily: 'var(--font-body)' }}>{nombre}</span>
+                <button onClick={() => { setPersonalId(''); setNombre(''); setBusqueda(''); setListaAbierta(true) }}
+                  style={{ background: 'none', border: 'none', color: 'var(--nd-mid)', fontSize: 12, cursor: 'pointer', textDecoration: 'underline', fontFamily: 'var(--font-body)' }}>cambiar</button>
+              </div>
+              {yaRegistrado && (
+                <p style={{ fontSize: 12, color: '#b86a00', marginTop: 8, padding: '8px 12px', background: '#fef3c7', borderRadius: 8, lineHeight: 1.4 }}>
+                  Este nombre ya está registrado en otro celular. Si cambiaste de teléfono, confirmá. Si no, avisá a oficina técnica.
+                </p>
+              )}
+              <button onClick={confirmarNombre} disabled={confirmando}
+                style={{ width: '100%', height: 48, marginTop: 10, background: confirmando ? '#aaa' : 'var(--nd-black)', color: 'var(--nd-light)', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: confirmando ? 'wait' : 'pointer', fontFamily: 'var(--font-title)', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                {confirmando ? <><Spinner size={16} color="var(--nd-light)" /> Confirmando...</> : <><Lock size={15} /> Confirmar mi nombre</>}
+              </button>
+              <p style={{ fontSize: 11, color: '#aaa', marginTop: 6, textAlign: 'center' }}>Tu nombre quedará fijo en este celular</p>
+            </>
           ) : (
             <>
               <input
@@ -185,6 +210,13 @@ export function CargaPublica() {
             : !personalId && <p style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>Elegí tu nombre una sola vez. Quedará fijo en este celular.</p>}
         </div>
 
+        {/* El formulario de carga solo aparece una vez confirmada la identidad */}
+        {!bloqueado ? (
+          <div style={{ textAlign: 'center', padding: '30px 16px', color: '#999', fontSize: 14, lineHeight: 1.5 }}>
+            Buscá y confirmá tu nombre arriba para empezar a cargar.
+          </div>
+        ) : (
+        <>
         {/* Tipo */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
           {[['hallazgo','⚠️ Hallazgo'],['innecesario','📦 Innecesario']].map(([val, lbl]) => (
@@ -292,6 +324,8 @@ export function CargaPublica() {
           }}>
           {saving ? <><Spinner size={18} color="var(--nd-light)" /> Enviando...</> : <><Send size={16} /> Enviar</>}
         </button>
+        </>
+        )}
 
         <p style={{ fontSize: 11, color: '#ccc', textAlign: 'center', marginTop: 16 }}>
           NDTracker 5S · NovaDomus
