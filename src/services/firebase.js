@@ -24,6 +24,13 @@ export const getCol    = async (nombre) => {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
+// Consulta una colección filtrando por un campo (fuente de verdad, no estado local)
+export const getColWhere = async (nombre, campo, valor) => {
+  const q = query(collection(db, C(nombre)), where(campo, '==', valor))
+  const snap = await getDocs(q)
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+}
+
 export const getItem   = async (nombre, id) => {
   const snap = await getDoc(doc(db, C(nombre), id))
   return snap.exists() ? { id: snap.id, ...snap.data() } : null

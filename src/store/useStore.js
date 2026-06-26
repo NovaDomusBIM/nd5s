@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { PROYECTOS_SEED, USUARIOS_SEED } from '../data/mock'
 import {
   loginFirebase, logoutFirebase, onAuthChange, loginAnonimo,
-  getCol, listenCol, addItem, setItem, updateItem, deleteItem, seedIfEmpty
+  getCol, getColWhere, listenCol, addItem, setItem, updateItem, deleteItem, seedIfEmpty
 } from '../services/firebase'
 
 const getDeviceId = () => {
@@ -192,18 +192,27 @@ export const useStore = create((set, get) => ({
 
   // Carga inmediata de personal + dispositivos para /cargar (one-shot, no espera al listener)
   cargarPersonalDirecto: async () => {
-    try {
-      let { proyectoActivo, proyectos } = get()
-      if (!proyectoActivo) {
-        proyectos = proyectos.length ? proyectos : await getCol('proyectos')
-        proyectoActivo = proyectos.find(p => p.estado === 'activo') || proyectos[0] || null
-        if (proyectoActivo) set({ proyectos, proyectoActivo })
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms))
+    for (let intento = 1; intento <= 3; intento++) {
+      try {
+        let { proyectoActivo, proyectos } = get()
+        if (!proyectoActivo) {
+          proyectos = proyectos.length ? proyectos : await getCol('proyectos')
+          proyectoActivo = proyectos.find(p => p.estado === 'activo') || proyectos[0] || null
+          if (proyectoActivo) set({ proyectos, proyectoActivo })
+        }
+        const [personal, dispositivos] = await Promise.all([
+          getCol('personal'), getCol('dispositivos')
+        ])
+        set({ personal, dispositivos })
+        // Si trajo personal, listo. Si vino vacío en un intento temprano, reintenta.
+        if (personal.length || intento === 3) return
+      } catch (e) {
+        console.error(`cargar personal directo (intento ${intento}):`, e)
+        if (intento === 3) return
       }
-      const [personal, dispositivos] = await Promise.all([
-        getCol('personal'), getCol('dispositivos')
-      ])
-      set({ personal, dispositivos })
-    } catch (e) { console.error('cargar personal directo:', e) }
+      await sleep(800 * intento)
+    }
   },
 
   setProyectoActivo: (proyecto) => {
@@ -258,7 +267,7 @@ export const useStore = create((set, get) => ({
       ...data,
       proyectoId:     proyectoActivo?.id || '',
       proyectoCodigo: proyectoActivo?.codigo || '',
-      creadoPor:      usuarioActual?.nombre || data.nombreCargador || 'Anónimo',
+      creadoPor:      data.nombreCargador || usuarioActual?.nombre || 'Anónimo',
       creadoPorId:    usuarioActual?.id || null,
       uidAnon:        usuarioActual?.anonimo ? (usuarioActual?.uid || null) : null,
       deviceId,
@@ -298,7 +307,7 @@ export const useStore = create((set, get) => ({
     const item = {
       ...data,
       proyectoId:    proyectoActivo?.id || '',
-      creadoPor:     usuarioActual?.nombre || data.nombreCargador || 'Anónimo',
+      creadoPor:     data.nombreCargador || usuarioActual?.nombre || 'Anónimo',
       creadoPorId:   usuarioActual?.id || null,
       uidAnon:       usuarioActual?.anonimo ? (usuarioActual?.uid || null) : null,
       deviceId, estado: 'pendiente',
@@ -338,12 +347,23 @@ export const useStore = create((set, get) => ({
   // ── Dispositivos (vínculo uid → persona) ───────────────────────────────────
   // Registra/actualiza el vínculo cuando un operario elige su nombre por 1ª vez.
   registrarDispositivo: async (uid, persona) => {
-    const { proyectoActivo, dispositivos } = get()
+    if (!uid || !persona?.id) throw new Error('Datos incompletos para registrar')
+    let { proyectoActivo, proyectos } = get()
+    if (!proyectoActivo) {
+      proyectos = proyectos.length ? proyectos : await getCol('proyectos')
+      proyectoActivo = proyectos.find(p => p.estado === 'activo') || proyectos[0] || null
+    }
     const nombreCompleto = `${persona.nombre} ${persona.apellido}`.trim()
-    const existente = dispositivos.find(d => d.uid === uid)
+    // Buscar dispositivo existente por uid directamente en Firestore (consulta puntual,
+    // no trae todos: más eficiente y sin condición de carrera con muchos registrando)
+    let existentes = []
+    try { existentes = await getColWhere('dispositivos', 'uid', uid) } catch {}
+    const existente = existentes[0]
     if (existente) {
       await updateItem('dispositivos', existente.id, {
-        personalId: persona.id, nombreCompleto, ultimaCarga: new Date().toISOString()
+        personalId: persona.id, nombreCompleto,
+        proyectoId: proyectoActivo?.id || existente.proyectoId || '',
+        ultimaCarga: new Date().toISOString()
       })
     } else {
       await addItem('dispositivos', {
