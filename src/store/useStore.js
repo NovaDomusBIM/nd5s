@@ -20,7 +20,7 @@ export const setNombreGuardado = (n) => localStorage.setItem('nd5s_nombre', n)
 // ── Identidad de operario bloqueada por dispositivo ──────────────────────────
 // IDENTIDAD_VERSION: subir este número fuerza a TODOS los dispositivos a re-elegir
 // su nombre en la próxima carga (limpia la identidad vieja de localStorage).
-const IDENTIDAD_VERSION = '2'
+const IDENTIDAD_VERSION = '3'
 const migrarIdentidad = () => {
   if (localStorage.getItem('nd5s_id_version') !== IDENTIDAD_VERSION) {
     localStorage.removeItem('nd5s_nombre')
@@ -365,9 +365,13 @@ export const useStore = create((set, get) => ({
 
   // Login anónimo para /cargar: solo si no hay ninguna sesión activa.
   // Da un uid de Firebase estable por dispositivo, necesario para subir a Storage.
+  // Garantiza sesión y DEVUELVE el uid (espera a que el login anónimo complete)
   asegurarAnonimo: async () => {
     const { usuarioActual } = get()
-    if (usuarioActual) return            // ya hay sesión (con cuenta o anónima)
-    try { await loginAnonimo() } catch (e) { console.error('login anónimo:', e) }
+    if (usuarioActual?.uid) return usuarioActual.uid
+    try {
+      const cred = await loginAnonimo()
+      return cred?.user?.uid || null
+    } catch (e) { console.error('login anónimo:', e); return null }
   }
 }))

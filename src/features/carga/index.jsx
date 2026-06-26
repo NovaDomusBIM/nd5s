@@ -74,11 +74,17 @@ export function CargaPublica() {
     setConfirmando(true)
     try {
       const nombreFinal = `${personaElegida.nombre} ${personaElegida.apellido}`.trim()
+      // Garantizar uid ANTES de registrar (espera el login anónimo si hace falta)
+      const uid = usuarioActual?.uid || await asegurarAnonimo()
+      if (!uid) { setError('No se pudo registrar. Revisá tu conexión e intentá de nuevo.'); return }
+      await registrarDispositivo(uid, personaElegida)
       setIdentidadLocal(personaElegida.id, nombreFinal)
       setNombre(nombreFinal)
-      const uid = usuarioActual?.uid
-      if (uid) { try { await registrarDispositivo(uid, personaElegida) } catch (e) { console.error('registrar dispositivo:', e) } }
       setBloqueado(true)
+      setError('')
+    } catch (e) {
+      console.error('confirmar nombre:', e)
+      setError('No se pudo registrar. Revisá tu conexión e intentá de nuevo.')
     } finally { setConfirmando(false) }
   }
 
